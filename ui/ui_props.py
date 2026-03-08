@@ -41,7 +41,6 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
 
         # シェイプ同期
         if prop_o.use_composer and mesh_operator:
-            
             box_composer = layout.box()
             icon = "TRIA_DOWN" if prop_s.show_props_composer else "TRIA_RIGHT"
             header_row = box_composer.row()
@@ -94,8 +93,6 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
         if key.use_relative:
             col = layout.column()
             row = col.row(align=True, heading="Active Shape Key")
-            # row.label(text="{} ({})".format(kb.name, active_shape_key_index), icon="SHAPEKEY_DATA")
-            # col.prop(kb, "value", text="Value")
             sub = col.column(align=True)
             sub.prop(kb, "slider_min", text="Range Min")
             sub.prop(kb, "slider_max", text="Max")

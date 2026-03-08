@@ -78,9 +78,8 @@ class OBJECT_OT_mio3sk_composer_rule_create(Mio3SKComposerEditOperator):
         ext.composer_source.clear()
 
         if self.auto:
-            valued_shape_keys = [sk for sk in obj.data.shape_keys.key_blocks if sk.value]
-            for sk in valued_shape_keys:
-                if active_kb == sk:
+            for sk in obj.data.shape_keys.key_blocks[1:]:
+                if active_kb == sk or sk.value == 0:
                     continue
                 source = ext.composer_source.add()
                 source.name = sk.name
@@ -247,33 +246,32 @@ class OBJECT_OT_mio3sk_composer_apply(Mio3SKComposerEditOperator):
         key_blocks = obj.data.shape_keys.key_blocks
         active_kb = obj.active_shape_key
 
-        target_exts = set()
+        target_exts = []
         use_mirror_copy = True
         if not self.all and not self.dependence:
             # アクティブキーのみ処理
             ext = prop_o.ext_data.get(active_kb.name)
             if ext.composer_enabled:
-                target_exts.add(ext)
+                target_exts.append(ext)
                 if ext.composer_type != "MIRROR":
                     use_mirror_copy = False
+        elif self.dependence:
+            # アクティブキーと親と子を処理
+            # 自分と自分が親になっているキー
+            for ext in prop_o.ext_data:
+                if ext.name == active_kb.name and ext.composer_enabled:
+                    target_exts.append(ext)
+                elif active_kb.name in ext.composer_source:
+                    target_exts.append(ext)
+            # 自分と親の子のキー
+            current_exts = target_exts.copy()
+            for ext in prop_o.ext_data:
+                for selected in current_exts:
+                    if ext.name in selected.composer_source:
+                        target_exts.append(ext)
         else:
-            if self.dependence:
-                # アクティブキーと親と子を処理
-                # 自分と自分が親になっているキー
-                for ext in prop_o.ext_data:
-                    if ext.name == active_kb.name and ext.composer_enabled:
-                        target_exts.add(ext)
-                    elif active_kb.name in ext.composer_source:
-                        target_exts.add(ext)
-                # 自分と親の子のキー
-                current_exts = target_exts.copy()
-                for ext in prop_o.ext_data:
-                    for selected in current_exts:
-                        if ext.name in selected.composer_source:
-                            target_exts.add(ext)
-            else:
-                # すべてのルールを処理
-                target_exts = prop_o.ext_data
+            # すべてのルールを処理
+            target_exts = prop_o.ext_data
 
             # 親になっているキーを先に処理
             # ToDo: ALLのとき一番上の親まで再帰で調べる
@@ -294,16 +292,8 @@ class OBJECT_OT_mio3sk_composer_apply(Mio3SKComposerEditOperator):
         show_only_shape_key = obj.show_only_shape_key
         obj.show_only_shape_key = False
 
-        key_blocks.foreach_set("value", [0.0] * len(key_blocks))
-        key_blocks.foreach_set("mute", [True] * len(key_blocks))
-
-        # original_min = np.empty(len(key_blocks), dtype=np.float32)
-        # key_blocks.foreach_get("slider_min", original_min)
-        # key_blocks.foreach_set("slider_min", [-1.0] * len(key_blocks))
+        # 状態を変更
         # key_blocks.foreach_set("value", [0.0] * len(key_blocks))
-        # original_mute = np.empty(len(key_blocks), dtype=bool)
-        # key_blocks.foreach_get("mute", original_mute)
-        # key_blocks.foreach_set("mute", [True] * len(key_blocks))
 
         v_len = len(obj.data.vertices)
         basis_kb = obj.data.shape_keys.reference_key
@@ -339,8 +329,6 @@ class OBJECT_OT_mio3sk_composer_apply(Mio3SKComposerEditOperator):
             count += 1
 
         # 状態を復元
-        # key_blocks.foreach_set("slider_min", original_min)
-        # key_blocks.foreach_set("mute", original_mute)
         self.restore_shape_key_states(key_blocks, original_states)
         obj.active_shape_key_index = key_blocks.find(active_kb.name)
         obj.show_only_shape_key = show_only_shape_key
@@ -421,17 +409,42 @@ class OBJECT_OT_mio3sk_composer_apply(Mio3SKComposerEditOperator):
 
     @staticmethod
     def store_shape_key_states(key_blocks):
-        return {key.name: (key.value, key.vertex_group, key.mute) for key in key_blocks}
+        original_mute = np.empty(len(key_blocks), dtype=bool)
+        key_blocks.foreach_get("mute", original_mute)
+        key_blocks.foreach_set("mute", [True] * len(key_blocks))
+
+        original_min = np.empty(len(key_blocks), dtype=np.float32)
+        key_blocks.foreach_get("slider_min", original_min)
+        key_blocks.foreach_set("slider_min", [-10.0] * len(key_blocks))
+
+        original_max = np.empty(len(key_blocks), dtype=np.float32)
+        key_blocks.foreach_get("slider_max", original_max)
+        key_blocks.foreach_set("slider_max", [10.0] * len(key_blocks))
+
+        original_values = np.empty(len(key_blocks), dtype=np.float32)
+        key_blocks.foreach_get("value", original_values)
+
+        original_vertex_group = [kb.vertex_group for kb in key_blocks]
+
+        key_blocks.foreach_set("value", [0.0] * len(key_blocks))
+        key_blocks.foreach_set("mute", [True] * len(key_blocks))
+
+        return {
+            "value": original_values,
+            "mute": original_mute,
+            "slider_min": original_min,
+            "slider_max": original_max,
+            "vertex_group": original_vertex_group,
+        }
 
     @staticmethod
     def restore_shape_key_states(key_blocks, saved_states):
-        for key_name, (value, vertex_group, mute) in saved_states.items():
-            if key_name in key_blocks:
-                kb = key_blocks[key_name]
-                kb.value = value
-                kb.vertex_group = vertex_group
-                kb.mute = mute
-
+        key_blocks.foreach_set("value", saved_states["value"])
+        key_blocks.foreach_set("mute", saved_states["mute"])
+        key_blocks.foreach_set("slider_min", saved_states["slider_min"])
+        key_blocks.foreach_set("slider_max", saved_states["slider_max"])
+        for kb, vertex_group in zip(key_blocks, saved_states["vertex_group"]):
+            kb.vertex_group = vertex_group
 
 classes = [
     OBJECT_OT_mio3sk_composer_apply,

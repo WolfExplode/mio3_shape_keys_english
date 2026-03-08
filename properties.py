@@ -116,7 +116,7 @@ class OBJECT_PG_mio3sk_ext_data_tag(PropertyGroup):
 
 # コンポーザーのソース
 class OBJECT_PG_mio3sk_ext_data_source_key(PropertyGroup):
-    value: FloatProperty(name="Value", default=1, min=0, max=1, options=set())
+    value: FloatProperty(name="Value", default=1, min=-1, max=1, options=set())
     mask: StringProperty(name="Mask", description="Optional", options=set())
 
 
