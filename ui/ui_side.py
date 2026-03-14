@@ -55,7 +55,7 @@ class MIO3SK_PT_sub_blend(Mio3SKSidePanel):
 
 
 class MIO3SK_PT_sub_delta_repair(Mio3SKSidePanel):
-    bl_label = "表情修復"
+    bl_label = "Expression repair"
     bl_parent_id = "MIO3SK_PT_side_main"
     bl_options = {"DEFAULT_CLOSED"}
 
@@ -67,8 +67,8 @@ class MIO3SK_PT_sub_delta_repair(Mio3SKSidePanel):
         prop_w = context.window_manager.mio3sk
         layout = self.layout
         col = layout.column(align=True)
-        col.label(text="Basisに適用を使用後に", icon="INFO")
-        col.label(text="崩れた表情を修復します", icon="BLANK1")
+        col.label(text="After using Apply to Basis", icon="INFO")
+        col.label(text="Repair broken expressions", icon="BLANK1")
         row = col.row(align=True)
         shape_keys = context.active_object.data.shape_keys
         row.prop_search(prop_w, "apply_to_basis", shape_keys, "key_blocks", text="")

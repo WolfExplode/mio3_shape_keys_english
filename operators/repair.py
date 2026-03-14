@@ -7,13 +7,13 @@ from ..classes.operator import Mio3SKOperator
 
 class MESH_OT_mio3sk_repair(Mio3SKOperator):
     bl_idname = "mesh.mio3sk_repair"
-    bl_label = "シェイプキーを修復"
-    bl_description = "Basisに適用をして崩れたシェイプキーを修復します（基になったシェイプキーが残っていること）"
+    bl_label = "Repair shape keys"
+    bl_description = "Repair broken shape keys by applying to Basis (source key must exist)"
     bl_options = {"REGISTER", "UNDO"}
 
     source: StringProperty(name="Shape")
     blend: FloatProperty(name="Blend", default=-1, min=-2, max=2, step=10)
-    moved_only: BoolProperty(name="差分のある頂点のみ", default=True)
+    moved_only: BoolProperty(name="Moved vertices only", default=True)
 
     @classmethod
     def poll(cls, context):
@@ -79,7 +79,7 @@ class MESH_OT_mio3sk_repair(Mio3SKOperator):
         split = layout.split(factor=0.35)
         split.label(text="")
         row = split.row(align=True)
-        row.prop(self, "moved_only", text="動きのある頂点のみ")
+        row.prop(self, "moved_only", text="Vertices with movement only")
 
 
 classes = [

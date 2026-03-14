@@ -7,7 +7,7 @@ from ..utils.utils import get_unique_name, has_shape_key
 class OBJECT_OT_mio3sk_preset(Mio3SKOperator):
     bl_idname = "object.mio3sk_preset"
     bl_label = "Preset"
-    bl_description = "Preset (+Ctrlキーで値を上書き)"
+    bl_description = "Preset (+Ctrl to overwrite value)"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
     preset: StringProperty(name="Preset")
     assign: BoolProperty(name="Assign", options={"SKIP_SAVE"})

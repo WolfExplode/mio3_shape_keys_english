@@ -13,8 +13,8 @@ class OBJECT_OT_mio3sk_apply_to_basis(Mio3SKOperator):
     bl_options = {"REGISTER", "UNDO"}
 
     use_protect_delta: BoolProperty(
-        name="表情の保護を有効",
-        description="表情の保護を設定している「まばたき」などのキーに影響を与えないようにします",
+        name="Enable expression protection",
+        description="Prevent affecting keys like 'blink' that have expression protection set",
     )
 
     @classmethod

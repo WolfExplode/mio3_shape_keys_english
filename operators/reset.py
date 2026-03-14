@@ -7,7 +7,7 @@ from ..utils.utils import is_local_obj, has_shape_key
 
 class MESH_OT_mio3sk_reset(Mio3SKOperator):
     bl_idname = "mesh.mio3sk_reset"
-    bl_label = "選択したキーの形状をリセット"
+    bl_label = "Reset selected key shapes"
     bl_description = "Reset Shape Key"
     bl_options = {"REGISTER", "UNDO"}
 
@@ -62,7 +62,7 @@ class MESH_OT_mio3sk_reset(Mio3SKOperator):
 
 class OBJECT_OT_mio3sk_reset(Mio3SKOperator):
     bl_idname = "object.mio3sk_reset"
-    bl_label = "選択したキーの形状をリセット"
+    bl_label = "Reset selected key shapes"
     bl_description = "Reset Shape Key"
     bl_options = {"REGISTER", "UNDO"}
 

@@ -3,6 +3,7 @@ import json
 import bpy
 from bpy_extras.io_utils import ExportHelper
 from bpy.props import BoolProperty, StringProperty, EnumProperty
+from bpy.app.translations import pgettext_rpt
 from ..classes.operator import Mio3SKOperator, Mio3SKGlobalOperator
 from ..utils.utils import has_shape_key, valid_shape_key, pad_text
 from ..utils.ext_data import refresh_data
@@ -10,8 +11,8 @@ from ..utils.ext_data import refresh_data
 
 class OBJECT_OT_mio3sk_import_composer_rules(Mio3SKOperator):
     bl_idname = "object.mio3sk_import_composer_rules"
-    bl_label = "ルール設定をインポート"
-    bl_description = "ルール設定をファイルからインポート"
+    bl_label = "Import rules"
+    bl_description = "Import rules from file"
     bl_options = {"REGISTER", "UNDO"}
 
     filepath: StringProperty(name="File Path", subtype="FILE_PATH")
@@ -39,21 +40,21 @@ class OBJECT_OT_mio3sk_import_composer_rules(Mio3SKOperator):
             return {"CANCELLED"}
 
         if not os.path.exists(self.filepath):
-            self.report({"ERROR"}, "ファイルが存在しません")
+            self.report({"ERROR"}, pgettext_rpt("File does not exist"))
             return {"CANCELLED"}
 
         if not self.filepath.endswith(".json"):
-            self.report({"ERROR"}, "ファイルの形式が不正です")
+            self.report({"ERROR"}, pgettext_rpt("Invalid file format"))
             return {"CANCELLED"}
 
         try:
             with open(self.filepath, "r", encoding="utf-8") as f:
                 comp_data = json.load(f)
         except IOError:
-            self.report({"ERROR"}, "ファイルの読み込みに失敗しました")
+            self.report({"ERROR"}, pgettext_rpt("Failed to read file"))
             return {"CANCELLED"}
         except json.JSONDecodeError:
-            self.report({"ERROR"}, "JSONファイルの形式が不正です")
+            self.report({"ERROR"}, pgettext_rpt("Invalid JSON format"))
             return {"CANCELLED"}
 
         prop_obj = obj.mio3sk
@@ -84,17 +85,17 @@ class OBJECT_OT_mio3sk_import_composer_rules(Mio3SKOperator):
 
         refresh_data(context, obj, check=True, composer=True)
 
-        self.report({"INFO"}, "{}件のルールをインポートしました".format(imported_count))
+        self.report({"INFO"}, pgettext_rpt("Imported {} rules").format(imported_count))
         return {"FINISHED"}
 
 
 class OBJECT_OT_mio3sk_export_composer_rules(Mio3SKOperator, ExportHelper):
     bl_idname = "object.mio3sk_export_composer_rules"
-    bl_label = "ルール設定をエクスポート"
-    bl_description = "ルール設定をファイルにエクスポート"
+    bl_label = "Export rules"
+    bl_description = "Export rules to file"
     bl_options = {"REGISTER", "UNDO"}
 
-    selected: BoolProperty(name="選択中のキーのみ", default=False)
+    selected: BoolProperty(name="Selected keys only", default=False)
 
     filename_ext = ".json"
     filter_glob: StringProperty(default="*.json", options={"HIDDEN"})
@@ -155,9 +156,9 @@ class OBJECT_OT_mio3sk_export_composer_rules(Mio3SKOperator, ExportHelper):
             with open(self.filepath, "w", encoding="utf-8") as f:
                 json.dump(export_data, f, ensure_ascii=False, indent=None)
         except IOError as e:
-            self.report({"ERROR"}, "エクスポートに失敗しました")
+            self.report({"ERROR"}, pgettext_rpt("Export failed"))
 
-        self.report({"INFO"}, "エクスポートしました")
+        self.report({"INFO"}, pgettext_rpt("Exported"))
 
         return {"FINISHED"}
 
@@ -168,8 +169,8 @@ def poll_source_object(self, obj):
 
 class OBJECT_OT_mio3sk_transfer_settings(Mio3SKGlobalOperator):
     bl_idname = "object.mio3sk_transfer_settings"
-    bl_label = "別オブジェクトから設定を転送"
-    bl_description = "別のオブジェクトから設定を取り込む（シェイプキーの形状は転送されません）"
+    bl_label = "Transfer settings from other object"
+    bl_description = "Import settings from other object (shape key shapes not transferred)"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
 
     import_shape_keys: BoolProperty(name="Shape Keys", default=False)
@@ -274,7 +275,7 @@ class OBJECT_OT_mio3sk_transfer_settings(Mio3SKGlobalOperator):
         split.label(text="Base")
         split.prop(context.window_manager.mio3sk, "import_source", text="")
 
-        layout.label(text="インポートする情報")
+        layout.label(text="Import information")
         box = layout.box()
 
         split = box.split(factor=0.4)
@@ -284,7 +285,7 @@ class OBJECT_OT_mio3sk_transfer_settings(Mio3SKGlobalOperator):
         row.prop(self, "import_shape_keys_target", expand=True)
         split = box.split(factor=0.4)
         split.label(text="")
-        split.label(text="形状は転送されません", icon="ERROR")
+        split.label(text="Shapes are not transferred", icon="ERROR")
 
         col = box.column(align=True)
         col.separator(factor=0.5)
@@ -298,13 +299,13 @@ class OBJECT_OT_mio3sk_transfer_settings(Mio3SKGlobalOperator):
 
 class OBJECT_OT_mio3sk_output_shape_keys(Mio3SKOperator):
     bl_idname = "object.mio3sk_output_shape_keys"
-    bl_label = "シェイプキーの一覧を出力 (WIP)"
-    bl_description = "テキストエディタにシェイプキーの一覧を出力します"
+    bl_label = "Output shape key list (WIP)"
+    bl_description = "Output shape key list to text editor"
     bl_options = {"REGISTER", "UNDO"}
 
     source: EnumProperty(name="Source", items=[("ALL", "All", ""), ("GROUP", "Group", "")])
-    escape: BoolProperty(name="文字列をエスケープ", default=False)
-    print_no: BoolProperty(name="番号を出力", default=False)
+    escape: BoolProperty(name="Escape strings", default=False)
+    print_no: BoolProperty(name="Output numbers", default=False)
     separator: EnumProperty(name="Separator", items=[("TAB", "Tab", ""), ("COMMA", "Comma", "")])
 
     format: EnumProperty(
@@ -331,7 +332,7 @@ class OBJECT_OT_mio3sk_output_shape_keys(Mio3SKOperator):
         layout = self.layout
         layout.use_property_decorate = False
         layout.use_property_split = True
-        layout.label(text="テキストエディタウィンドウに出力します")
+        layout.label(text="Output to text editor window")
         row = layout.row(align=True)
         row.prop(self, "source", expand=True)
 

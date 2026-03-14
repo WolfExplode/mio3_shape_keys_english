@@ -17,8 +17,8 @@ class OP_PG_mio3sk_blend(PropertyGroup):
 
 class MESH_OT_mio3sk_blend(Mio3SKOperator):
     bl_idname = "mesh.mio3sk_blend"
-    bl_label = "シェイプキーをブレンド"
-    bl_description = "シェプキーをブレンド"
+    bl_label = "Blend shape keys"
+    bl_description = "Blend shape keys"
     bl_options = {"REGISTER", "UNDO"}
 
     blend: FloatProperty(name="Blend", default=1, min=-2, max=2, step=10, update=update_props)
@@ -34,7 +34,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         ],
     )
     blend_source: StringProperty(name="Shape")
-    from_history: StringProperty(name="履歴から選択", options={"SKIP_SAVE"})
+    from_history: StringProperty(name="Select from history", options={"SKIP_SAVE"})
     select_history: CollectionProperty(
         type=OP_PG_mio3sk_blend,
         name="Select History",
@@ -219,7 +219,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         row.prop_search(self, "blend_source", obj.data.shape_keys, "key_blocks", text="")
 
         row = layout.split(factor=0.35)
-        row.label(text="履歴から選択")
+        row.label(text="Select from history")
         row.prop_search(self, "from_history", self, "select_history", icon="TOPBAR", text="")
 
         row = layout.split(factor=0.35)
@@ -242,8 +242,8 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
 
 class WM_OT_blend_set_key(Mio3SKOperator):
     bl_idname = "wm.mio3sk_blend_set_key"
-    bl_label = "アクティブキーをセット"
-    bl_description = "現在のアクティブキーをブレンドソースに設定します"
+    bl_label = "Set active key"
+    bl_description = "Set current active key as blend source"
     bl_options = {"REGISTER", "UNDO_GROUPED"}
 
     def execute(self, context):

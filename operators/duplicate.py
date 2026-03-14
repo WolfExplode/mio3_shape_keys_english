@@ -6,6 +6,7 @@ from mathutils import Vector, kdtree
 from bpy.types import Object, ShapeKey, SpaceView3D
 from bpy.props import BoolProperty, FloatProperty, EnumProperty
 from bpy.app.translations import pgettext_iface as tt_iface
+from bpy.app.translations import pgettext_rpt
 from gpu_extras.batch import batch_for_shader
 from ..classes.operator import Mio3SKOperator
 from ..utils.utils import is_local_obj, has_shape_key, valid_shape_key, move_shape_key_below
@@ -82,7 +83,7 @@ class OBJECT_OT_mio3sk_duplicate(Mio3SKOperator):
 class OBJECT_OT_mio3sk_generate_lr(Mio3SKOperator):
     bl_idname = "object.mio3sk_generate_lr"
     bl_label = "Split L/R Shape Keys"
-    bl_description = "アクティブキーから左右のシェイプキーを生成します"
+    bl_description = "Generate L/R shape keys from active key"
     bl_options = {"REGISTER", "UNDO"}
 
     mode: EnumProperty(
@@ -91,14 +92,14 @@ class OBJECT_OT_mio3sk_generate_lr(Mio3SKOperator):
         options={"SKIP_SAVE"},
     )
     setup_rules: BoolProperty(
-        name="シェイプ同期ルールを作成",
-        description="元データと継続的に同期するためのルールを作成します",
+        name="Create shape sync rule",
+        description="Create rules for continuous sync with source data",
         default=True,
         options={"SKIP_SAVE"},
     )
-    remove_source: BoolProperty(name="元のシェイプキーを削除", options={"SKIP_SAVE"})
+    remove_source: BoolProperty(name="Remove source shape key", options={"SKIP_SAVE"})
     smoothing_radius: FloatProperty(
-        name="スムージング半径",
+        name="Smoothing radius",
         default=0,
         min=0.0,
         step=0.1,
@@ -321,7 +322,7 @@ class OBJECT_OT_mio3sk_generate_lr(Mio3SKOperator):
 class OBJECT_OT_mio3sk_generate_opposite(Mio3SKOperator):
     bl_idname = "object.mio3sk_generate_opposite"
     bl_label = "Create Mirror Shape Keys"
-    bl_description = "アクティブなL/Rシェイプキーから反対側のシェイプキーを生成"
+    bl_description = "Generate mirror shape keys from active L/R keys"
     bl_options = {"REGISTER", "UNDO"}
 
     mode: EnumProperty(
@@ -330,7 +331,7 @@ class OBJECT_OT_mio3sk_generate_opposite(Mio3SKOperator):
         options={"SKIP_SAVE"},
     )
     setup_rules: BoolProperty(
-        name="シェイプ同期ルールを作成", description="元データと継続的に同期するためのルールを作成します", default=True
+        name="Create shape sync rule", description="Create rules for continuous sync with source data", default=True
     )
 
     @classmethod
@@ -478,7 +479,7 @@ class OBJECT_OT_mio3sk_generate_opposite(Mio3SKOperator):
 class OBJECT_OT_mio3sk_merge_lr(Mio3SKOperator):
     bl_idname = "object.mio3sk_merge_lr"
     bl_label = "Join L/R Shape Keys"
-    bl_description = "選択した_L、_Rシェイプキーを統合して新しいシェイプキーを作成します"
+    bl_description = "Merge selected _L, _R shape keys into new shape key"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -497,13 +498,13 @@ class OBJECT_OT_mio3sk_merge_lr(Mio3SKOperator):
         selected_names = {ext.name for ext in obj.mio3sk.ext_data if ext.select}
 
         if not selected_names:
-            self.report({"WARNING"}, "シェイプキーが選択されていません")
+            self.report({"WARNING"}, pgettext_rpt("No shape keys selected"))
             return {"CANCELLED"}
 
         lr_pairs = self.find_lr_pairs_from_selection(selected_names)
 
         if not lr_pairs:
-            self.report({"WARNING"}, "統合可能なL/Rペアが見つかりません")
+            self.report({"WARNING"}, pgettext_rpt("No mergible L/R pair found"))
             return {"CANCELLED"}
 
         created_pairs = []

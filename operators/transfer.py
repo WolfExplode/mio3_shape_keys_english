@@ -2,6 +2,7 @@ import bpy
 import numpy as np
 from bpy.types import Context, Object
 from bpy.props import BoolProperty, FloatProperty, EnumProperty
+from bpy.app.translations import pgettext_rpt
 from mathutils import Vector, kdtree
 from mathutils.geometry import intersect_point_tri_2d
 from ..classes.operator import Mio3SKGlobalOperator
@@ -10,35 +11,35 @@ from ..utils.ext_data import refresh_data
 
 class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
     bl_idname = "object.mio3sk_shape_transfer"
-    bl_label = "シェイプキーとして形状を転送"
-    bl_description = "他のオブジェクトの形状やシェイプキーをアクティブオブジェクトに転送します"
+    bl_label = "Transfer shape as shape key"
+    bl_description = "Transfer shapes from other object to active object"
     bl_options = {"REGISTER", "UNDO"}
 
     method: EnumProperty(
-        items=[("MESH", "統合メッシュ形状", ""), ("KEY", "Active Shape Key", "")],
+        items=[("MESH", "Merge mesh shape", ""), ("KEY", "Active Shape Key", "")],
         options={"HIDDEN", "SKIP_SAVE"},
     )
     transfer: EnumProperty(
         items=[
-            ("STANDARD", "Standard", "同一頂点数の転送"),
-            ("SMART", "スマートマッピング", "頂点数が異なるメッシュの転送を補間します"),
+            ("STANDARD", "Standard", "Transfer with same vertex count"),
+            ("SMART", "Smart mapping", "Interpolate transfer for meshes with different vertex counts"),
         ],
     )
     mapping_mode: EnumProperty(
-        name="マッピング方法",
+        name="Mapping method",
         items=[
-            ("POSITION", "Basisの位置", "Basisの位置でマッピング（通常はこれ）"),
-            ("UV", "UV", "UVの位置でマッピング"),
-            ("INDEX", "Index", "頂点番号でマッピング"),
+            ("POSITION", "Basis position", "Map by Basis position (default)"),
+            ("UV", "UV", "Map by UV position"),
+            ("INDEX", "Index", "Map by vertex index"),
         ],
     )
     target: EnumProperty(
         name="Target",
-        items=[("ACTIVE", "Active Shape Key", ""), ("ALL", "All", ""), ("SELECTED", "ソース側の選択したキー", "")],
+        items=[("ACTIVE", "Active Shape Key", ""), ("ALL", "All", ""), ("SELECTED", "Selected keys on source", "")],
     )
     threshold: FloatProperty(name="Threshold", default=0.004, min=0.0, max=1.0, precision=3)
     threshold_uv: FloatProperty(name="Threshold", default=0.0001, min=0.0, max=1.0, precision=4)
-    scale_normalize: BoolProperty(name="スケール補正", default=False, description="スケールが異なる場合に補正します")
+    scale_normalize: BoolProperty(name="Scale correction", default=False, description="Correct when scale differs")
 
     def get_objects(self, context) -> tuple[Object, Object]:
         selected_objects = context.selected_objects
@@ -56,7 +57,7 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
     def invoke(self, context: Context, event):
         source_obj, target_obj = self.get_objects(context)
         if not source_obj or not target_obj:
-            self.report({"ERROR"}, "2つのオブジェクトを選択してください")
+            self.report({"ERROR"}, pgettext_rpt("Select two objects"))
             return {"CANCELLED"}
 
         source_len = len(source_obj.data.vertices)
@@ -89,7 +90,7 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             return {"CANCELLED"}
 
         if self.mapping_mode == "UV" and (not source_obj.data.uv_layers.active or not target_obj.data.uv_layers.active):
-            self.report({"ERROR"}, "両方のオブジェクトにUVマップが必要です")
+            self.report({"ERROR"}, pgettext_rpt("Both objects need UV map"))
             return {"CANCELLED"}
 
         if self.method == "KEY" and not source_obj.data.shape_keys:
@@ -100,7 +101,7 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
 
         if self.transfer == "STANDARD":
             if source_len != target_len:
-                self.report({"ERROR"}, "頂点数が異なるメッシュはスマートマッピングを使用してください")
+                self.report({"ERROR"}, pgettext_rpt("Use smart mapping for meshes with different vertex counts"))
                 return {"CANCELLED"}
             self.standard_prosess(context)
             refresh_data(context, target_obj, check=True, group=True)
@@ -204,7 +205,7 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             source_obj.active_shape_key_index = source_active_shape_key_index
 
         if self.target == "ACTIVE":
-            self.report({"INFO"}, "{}個の頂点を転送、{}個の頂点を補間".format(len(direct_map), len(interp_map)))
+            self.report({"INFO"}, pgettext_rpt("{} vertices transferred, {} interpolated").format(len(direct_map), len(interp_map)))
 
         target_obj.active_shape_key_index = len(target_obj.data.shape_keys.key_blocks) - 1
 
@@ -445,7 +446,7 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             if result != {"FINISHED"}:
                 raise RuntimeError("頂点数が異なるメッシュはスマートマッピングを使用してください")
         except Exception as e:
-            self.report({"ERROR"}, "「標準」モードのエラー: {}".format(str(e)))
+            self.report({"ERROR"}, pgettext_rpt("Standard mode error: {}").format(str(e)))
             return {"FINISHED"}
 
     def draw(self, context):

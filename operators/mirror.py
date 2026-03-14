@@ -7,8 +7,8 @@ from ..utils.utils import is_local_obj, valid_shape_key
 
 class MESH_OT_mio3sk_mirror(Mio3SKOperator):
     bl_idname = "mesh.mio3sk_mirror"
-    bl_label = "アクティブなキーを左右反転"
-    bl_description = "アクティブなシェイプキーをX軸でミラーリングします"
+    bl_label = "Mirror active key left/right"
+    bl_description = "Mirror active shape key on X axis"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod

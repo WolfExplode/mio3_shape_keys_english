@@ -24,7 +24,7 @@ class OBJECT_OT_mio3sk_sort(Mio3SKOperator):
 
     keys: EnumProperty(name="Keys", items=[("ALL", "All", ""), ("ACTIVE_GROUP", "Active Group", "")])
     type: EnumProperty(name="Order", items=[("ASC", "ASC", ""), ("DESC", "DESC", "")])
-    use_group: BoolProperty(name="グループごとにソート", default=True)
+    use_group: BoolProperty(name="Sort by group", default=True)
 
     @classmethod
     def poll(cls, context):
@@ -49,7 +49,7 @@ class OBJECT_OT_mio3sk_sort(Mio3SKOperator):
 
         if self.method == "OBJECT":
             box = layout.box()
-            box.label(text="他のオブジェクトの順に合わせる", icon="SHAPEKEY_DATA")
+            box.label(text="Match order to other object", icon="SHAPEKEY_DATA")
             box.prop(context.window_manager.mio3sk, "sort_source")
         else:
             layout.prop(self, "type", expand=True)

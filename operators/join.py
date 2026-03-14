@@ -13,7 +13,7 @@ from ..utils.ext_data import clear_filter, refresh_data
 class OBJECT_OT_mio3sk_join_keys(Mio3SKOperator):
     bl_idname = "object.mio3sk_join_keys"
     bl_label = "Join Shape Keys"
-    bl_description = "現在のシェイプキーの値で統合して新しいシェイプキーを作成します"
+    bl_description = "Merge shape keys with current values into new shape key"
     bl_options = {"REGISTER", "UNDO"}
     target: EnumProperty(
         name="Target",
@@ -23,7 +23,7 @@ class OBJECT_OT_mio3sk_join_keys(Mio3SKOperator):
         ],
         options={"SKIP_SAVE"},
     )
-    clear_value: BoolProperty(name="値をクリア", default=False, options={"SKIP_SAVE"})
+    clear_value: BoolProperty(name="Clear value", default=False, options={"SKIP_SAVE"})
     # clear_shape: BoolProperty(name="形状を初期化", default=True, options={"SKIP_SAVE"})
 
     @classmethod

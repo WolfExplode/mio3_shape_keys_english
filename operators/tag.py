@@ -1,5 +1,6 @@
 import bpy
 from bpy.props import BoolProperty, StringProperty, EnumProperty
+from bpy.app.translations import pgettext_rpt
 from ..classes.operator import Mio3SKOperator, Mio3SKGlobalOperator
 from ..utils.utils import get_unique_name, srgb2lnr
 from ..utils.ext_data import refresh_filter_flag, refresh_tag_data
@@ -131,7 +132,7 @@ class OBJECT_OT_mio3sk_tag_list_move(Mio3SKGlobalOperator):
 
 class OBJECT_OT_mio3sk_assign_tag(Mio3SKOperator):
     bl_idname = "object.mio3sk_assign_tag"
-    bl_label = "タグの割り当てと解除"
+    bl_label = "Assign and remove tags"
     bl_description = "Assign Tag"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
     method: EnumProperty(
@@ -233,7 +234,7 @@ class OBJECT_OT_mio3sk_clear_tag(Mio3SKGlobalOperator):
         for ext in selected_exts:
             ext.tags.clear()
 
-        self.report({"INFO"}, "{}個のシェイプキーのタグを初期化しました".format(len(selected_exts)))
+        self.report({"INFO"}, pgettext_rpt("Initialized tags for {} shape keys").format(len(selected_exts)))
         refresh_tag_data(context, obj)
         refresh_filter_flag(context, obj)
         return {"FINISHED"}

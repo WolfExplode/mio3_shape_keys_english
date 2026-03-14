@@ -89,8 +89,8 @@ class MIO3SK_MT_move(Menu):
         layout.operator("object.mio3sk_move", icon="TRIA_UP_BAR", text="Move to Top").type = "TOP"
         layout.operator("object.mio3sk_move", icon="TRIA_DOWN_BAR", text="Move to Bottom").type = "BOTTOM"
         layout.separator()
-        layout.operator("object.mio3sk_move_group", icon="TRIA_UP", text="グループを上に移動").type = "UP"
-        layout.operator("object.mio3sk_move_group", icon="TRIA_DOWN", text="グループを下に移動").type = "DOWN"
+        layout.operator("object.mio3sk_move_group", icon="TRIA_UP", text="Move group up").type = "UP"
+        layout.operator("object.mio3sk_move_group", icon="TRIA_DOWN", text="Move group down").type = "DOWN"
         layout.separator()
         layout.operator("object.mio3sk_sort", icon_value=icons.sort)
 
@@ -129,8 +129,8 @@ class MIO3SK_MT_select_keys_edit(Menu):
 
         layout.separator()
         if prop_s.show_keyframe:
-            layout.operator("object.mio3sk_keyframe", text="キーフレームを追加", icon="KEYFRAME_HLT").action = "ADD"
-            layout.operator("object.mio3sk_keyframe", text="キーフレームを削除", icon="KEYFRAME").action = "REMOVE"
+            layout.operator("object.mio3sk_keyframe", text="Add keyframe", icon="KEYFRAME_HLT").action = "ADD"
+            layout.operator("object.mio3sk_keyframe", text="Remove keyframe", icon="KEYFRAME").action = "REMOVE"
             layout.separator()
         layout.operator("object.mio3sk_reset", icon_value=icons.eraser)
         layout.operator("object.mio3sk_clean_selected", icon="MOD_FLUIDSIM").mode = "SELECTED"
@@ -144,8 +144,8 @@ class MIO3SK_MT_composer_menu(Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator("object.mio3sk_composer_remove", text="ルールを削除", icon="TRASH")
-        layout.operator("object.mio3sk_composer_remove_all", text="すべてのルールを削除", icon="TRASH")
+        layout.operator("object.mio3sk_composer_remove", text="Remove rule", icon="TRASH")
+        layout.operator("object.mio3sk_composer_remove_all", text="Remove all rules", icon="TRASH")
 
 
 class MIO3SK_MT_io_import_menu(Menu):
@@ -174,8 +174,8 @@ class MIO3SK_MT_tag_settings(Menu):
     def draw(self, context):
         layout = self.layout
         layout.label(text="Library")
-        layout.operator("object.mio3sk_tag_library", text=tt_iface("顔 英語表記"), icon="ADD").type = "facial"
-        layout.operator("object.mio3sk_tag_library", text=tt_iface("顔 日本語表記"), icon="ADD").type = "facial_ja"
+        layout.operator("object.mio3sk_tag_library", text=tt_iface("Face (English)"), icon="ADD").type = "facial"
+        layout.operator("object.mio3sk_tag_library", text=tt_iface("Face (Japanese)"), icon="ADD").type = "facial_ja"
         layout.operator("object.mio3sk_tag_library", text=tt_iface("Category"), icon="ADD").type = "basic"
 
 
@@ -184,7 +184,7 @@ class MIO3SK_MT_prop_vertex_group(Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator("object.mio3sk_apply_mask", text="マスクを適用", icon="MONKEY")
+        layout.operator("object.mio3sk_apply_mask", text="Apply mask", icon="MONKEY")
 
 
 class MIO3SK_PT_options_popover(Panel):
@@ -201,7 +201,7 @@ class MIO3SK_PT_options_popover(Panel):
         prop_s = context.scene.mio3sk
         prop_o = obj.mio3sk
 
-        layout.label(text="リストに表示するプロパティ")
+        layout.label(text="Properties to show in list")
         col = layout.column(align=True)
         split = col.split(factor=0.5)
         split.prop(prop_s, "show_select", text="Select")
@@ -212,7 +212,7 @@ class MIO3SK_PT_options_popover(Panel):
 
         col.prop(prop_s, "hide_group_value")
 
-        layout.label(text="表示する機能")
+        layout.label(text="Functions to show")
         col = layout.column(align=True)
         col.prop(prop_o, "use_group", text="Group")    
         col.prop(prop_o, "use_tags", text="Tags")
@@ -239,13 +239,13 @@ class MIO3SK_MT_side(Menu):
         layout = self.layout
         col = layout.column(align=True)
         col.operator("mesh.mio3sk_mirror", text="Mirror", icon_value=icons.mirror)
-        col.operator("mesh.mio3sk_invert", text="デルタ反転", icon_value=icons.delta_invert)
+        col.operator("mesh.mio3sk_invert", text="Invert delta", icon_value=icons.delta_invert)
         col.separator()
         col.operator("mesh.mio3sk_clean", text="Clean", icon="MOD_FLUIDSIM")
         col.operator("mesh.mio3sk_symmetrize", text="Symmetrize", icon_value=icons.symmetrize)
         col.separator()
-        col.operator("mesh.mio3sk_select_moved", text="移動している頂点を選択", icon="RESTRICT_SELECT_OFF")
-        col.operator("mesh.mio3sk_select_asymmetry", text="非対称頂点を選択", icon="RESTRICT_SELECT_OFF")
+        col.operator("mesh.mio3sk_select_moved", text="Select moved vertices", icon="RESTRICT_SELECT_OFF")
+        col.operator("mesh.mio3sk_select_asymmetry", text="Select asymmetric vertices", icon="RESTRICT_SELECT_OFF")
 
 
 # 右クリックのコンテキストメニュー
@@ -255,13 +255,13 @@ def button_context_menu(self, context):
         if menu.bl_rna.identifier == "OBJECT_OT_mio3sk_preset":
             preset = context.button_operator.preset
             layout.separator()
-            layout.operator("object.mio3sk_preset_list_remove", icon="X", text="プリセットを削除").preset = preset
+            layout.operator("object.mio3sk_preset_list_remove", icon="X", text="Remove preset").preset = preset
         elif menu.bl_rna.identifier == "OBJECT_OT_mio3sk_select_tag":
             tag = context.button_operator.tag
             layout.separator()
-            layout.operator("object.mio3sk_tag_rename", icon="X", text="タグの名前を変更").tag = tag
+            layout.operator("object.mio3sk_tag_rename", icon="X", text="Rename tag").tag = tag
             # layout.operator("object.mio3sk_assign_tag", icon_value=icons.tag, text="タグを割当").tag = tag
-            layout.operator("object.mio3sk_tag_list_remove", icon="X", text="タグを削除").tag = tag
+            layout.operator("object.mio3sk_tag_list_remove", icon="X", text="Remove tag").tag = tag
 
 
 def list_item_context_menu(self, context):

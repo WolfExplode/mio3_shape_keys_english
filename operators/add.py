@@ -2,6 +2,7 @@ import csv
 import os
 import bpy
 from bpy.types import Object
+from bpy.app.translations import pgettext_rpt
 from bpy.props import BoolProperty, StringProperty, EnumProperty
 from ..classes.operator import Mio3SKOperator, Mio3SKGlobalOperator
 from ..utils.utils import has_shape_key, is_sync_collection, get_unique_name, move_shape_key_below
@@ -21,7 +22,7 @@ def get_collection_keys(obj: Object):
 class OBJECT_OT_mio3sk_shape_key_add(Mio3SKGlobalOperator):
     bl_idname = "object.mio3sk_shape_key_add"
     bl_label = "Add Shape Key"
-    bl_description = "オブジェクトにシェイプキーを追加します。\n[+Alt]同期コレクションのオブジェクトすべてに追加"
+    bl_description = "Add shape key to object.\n[+Alt] Add to all objects in sync collection"
     bl_options = {"REGISTER", "UNDO"}
     from_mix: BoolProperty(default=False, options={"SKIP_SAVE", "HIDDEN"})
     sync: BoolProperty(default=False, options={"SKIP_SAVE", "HIDDEN"})
@@ -50,7 +51,7 @@ class OBJECT_OT_mio3sk_shape_key_add(Mio3SKGlobalOperator):
             for cobj in collection_objects:
                 for name in cobj.data.shape_keys.key_blocks.keys():
                     if name == self.name:
-                        self.report({"ERROR"}, "オブジェクト「{}」にキー名「{}」が存在しているためキャンセルされました".format(cobj.name, name))
+                        self.report({"ERROR"}, pgettext_rpt("Cancelled: object '{}' already has key '{}'").format(cobj.name, name))
                         return {"CANCELLED"}
 
             for o in collection_objects:
@@ -71,15 +72,15 @@ class OBJECT_OT_mio3sk_shape_key_add(Mio3SKGlobalOperator):
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text="同期コレクションのオブジェクトすべてに追加")
+        layout.label(text="Add to all objects in sync collection")
         if self.sync:
             layout.prop(self, "name")
 
 
 class OBJECT_OT_mio3sk_add_below(Mio3SKOperator):
     bl_idname = "object.mio3sk_add_below"
-    bl_label = "現在の位置に新しいキーを追加"
-    bl_description = "アクティブキーの下に新しいキーを追加します"
+    bl_label = "Add new key at current position"
+    bl_description = "Add new key below active key"
     bl_options = {"REGISTER", "UNDO"}
     duplicate: BoolProperty(default=False, options={"SKIP_SAVE"})
 
@@ -152,7 +153,7 @@ class OBJECT_OT_mio3sk_add_preset(Mio3SKGlobalOperator):
         (key, item["name"], item["desc"]) for key, item in resources.shape_keys_items.items()
     ]
     type: EnumProperty(name="Preset", default=0, items=enum_items)
-    setup_rules: BoolProperty(default=True, name="同期ルールを作成")
+    setup_rules: BoolProperty(default=True, name="Create sync rules")
 
     @classmethod
     def description(cls, context, properties):
@@ -195,7 +196,7 @@ class OBJECT_OT_mio3sk_add_preset(Mio3SKGlobalOperator):
 class OBJECT_OT_mio3sk_fill_keys(Mio3SKGlobalOperator):
     bl_idname = "object.mio3sk_fill_keys"
     bl_label = "Fill Shape Keys"
-    bl_description = "コレクション内で使用されているキーをすべて作成"
+    bl_description = "Create all keys used in collection"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod

@@ -224,16 +224,16 @@ class OBJECT_PG_mio3sk_ext_data(PropertyGroup):
         options=set(),
     )
     protect_delta: BoolProperty(
-        name="Basis適用時に表情を保護する",
-        description="まばたきやウィンク、△くちなど、Basis適用で崩れるキーに設定する",
+        name="Protect expression on Basis apply",
+        description="Set for keys like blink, wink that break on Basis apply",
         default=False,
         options=set(),
     )
-    name_ja: StringProperty(name="カスタムラベル（Dev)", options=set())
-    old_name: StringProperty(name="古い名前（Dev)", options=set())
+    name_ja: StringProperty(name="Custom label (Dev)", options=set())
+    old_name: StringProperty(name="Old name (Dev)", options=set())
     old_ratio: FloatProperty(
-        name="倍率変更（Dev)",
-        description="例）前回のバージョンから3になった場合は3と入力",
+        name="Scale change (Dev)",
+        description="e.g. enter 3 if changed from previous version",
         default=1,
         min=-10,
         max=10,
@@ -302,22 +302,22 @@ class OBJECT_PG_mio3sk(PropertyGroup):
     selected_len: IntProperty(name="Selected Length", default=0, options=set())
     composer_global_enabled: BoolProperty(name="Use Composer Rules", default=False, options=set())
     is_group_global_close: BoolProperty(
-        name="すべて開くまたは閉じる（任意のプレフィックスでグループ化）",
+        name="Open or close all (group by any prefix)",
         default=False,
         update=callback_is_group_global_close,
         options=set(),
     )
     # フィルター
     is_global_select: BoolProperty(
-        name="すべて選択または解除", default=False, update=callback_is_global_select, options=set()
+        name="Select or deselect all", default=False, update=callback_is_global_select, options=set()
     )
     filter_name: StringProperty(
         name="Filter by Name",
         update=callback_filter,
         options={"TEXTEDIT_UPDATE"},
     )
-    filter_select: BoolProperty(name="選択中のキーのみを表示", default=False, update=callback_filter, options=set())
-    filter_used: BoolProperty(name="使用されているキーのみを表示", default=False, update=callback_filter, options=set())
+    filter_select: BoolProperty(name="Show selected keys only", default=False, update=callback_filter, options=set())
+    filter_used: BoolProperty(name="Show used keys only", default=False, update=callback_filter, options=set())
     group_active: BoolProperty(name="Active Group", default=False, options=set())
 
     preset_list: CollectionProperty(
@@ -363,14 +363,14 @@ class SCENE_PG_mio3sk(PropertyGroup):
     show_keyframe: BoolProperty(name="Show Keyframe", default=False, update=refresh_panel_factor, options=set())
     show_props_tags: BoolProperty(name="Show Props Tag", default=True, options=set())
     show_props_composer: BoolProperty(name="Show Props Composer", default=True, options=set())
-    hide_group_value: BoolProperty(name="グループのスライダーを非表示", default=True, options=set())
+    hide_group_value: BoolProperty(name="Hide group sliders", default=True, options=set())
     panel_factor: FloatProperty(name="Panel factor", default=0.63, options=set())
     groupbar_factor: FloatProperty(name="Group Sidebar Size", default=1.0, min=1, max=2.0, options=set())
 
     blend: FloatProperty(name="Blend", default=1, soft_min=-1, soft_max=2, step=10, options=set())
 
-    composer_auto: BoolProperty(name="シェイプの同期を自動で適用", default=False, options=set())
-    composer_auto_skip: BoolProperty(name="自動適用のスキップ", default=False, options=set())
+    composer_auto: BoolProperty(name="Auto apply shape sync", default=False, options=set())
+    composer_auto_skip: BoolProperty(name="Skip auto apply", default=False, options=set())
 
     group_prefix: StringProperty(
         name="Custom Group Prefix",
@@ -381,7 +381,7 @@ class SCENE_PG_mio3sk(PropertyGroup):
         name="Use Prefix",
         items=[
             ("NONE", "None", "No prefix will be used"),
-            ("AUTO", "Auto", "'---' または '===' でグループ化"),
+            ("AUTO", "Auto", "Group by '---' or '==='"),
             ("CUSTOM", "Custom", "Use a custom prefix for grouping shape keys"),
         ],
         default="AUTO",
@@ -432,7 +432,7 @@ class WM_PG_mio3sk(PropertyGroup):
 
     apply_to_basis: StringProperty(name="Apply to Basis", options=set())
     import_source: PointerProperty(
-        name="転送元のオブジェクト",
+        name="Source object",
         type=Object,
         poll=poll_source_object,
         options=set(),
@@ -450,7 +450,7 @@ class WM_PG_mio3sk(PropertyGroup):
     preset_manage: BoolProperty(name="Preset Edit", default=False, options=set())
     progress: FloatProperty(name="Progress", default=0, options=set())
     sort_source: PointerProperty(
-        name="ソートの基準",
+        name="Sort basis",
         type=Object,
         options=set(),
         # poll=poll_source_object,

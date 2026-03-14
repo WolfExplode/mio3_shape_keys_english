@@ -9,12 +9,12 @@ from ..classes.operator import Mio3SKOperator
 class MESH_OT_mio3sk_select_moved(Mio3SKOperator):
     bl_idname = "mesh.mio3sk_select_moved"
     bl_label = "Select Moved by Shape Keys"
-    bl_description = "Basisから移動している頂点を選択します"
+    bl_description = "Select vertices moved by shape keys"
     bl_options = {"REGISTER", "UNDO"}
 
     threshold: FloatProperty(
         name="Threshold",
-        description="移動とみなす最小距離",
+        description="Minimum distance to consider as moved",
         default=0.0001,
         min=0.0,
         step=0.01,
@@ -94,8 +94,8 @@ class MESH_OT_mio3sk_select_asymmetry(Mio3SKOperator):
         precision=4,
     )
     include_basis: BoolProperty(
-        name="Basisの非対称頂点を含める",
-        description="Basisの時点で非対称な頂点も選択します",
+        name="Include asymmetric vertices in Basis",
+        description="Include vertices asymmetric at Basis",
         default=False,
     )
 

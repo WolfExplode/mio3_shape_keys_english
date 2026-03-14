@@ -115,7 +115,7 @@ class MIO3SK_PT_main(Mio3SKPanel):
             layout.separator(factor=0.1)
             sub = layout.row(align=True)
             sub.operator("object.mio3sk_composer_apply", icon_value=icons.linked).dependence = True
-            sub.operator("object.mio3sk_composer_apply", icon_value=icons.linked, text="すべてを同期").all = True
+            sub.operator("object.mio3sk_composer_apply", icon_value=icons.linked, text="Sync All").all = True
             sub.prop(prop_s, "composer_auto", text="", icon_value=icons.refresh)
 
         layout.separator(factor=0.1)
