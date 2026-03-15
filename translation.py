@@ -60,6 +60,8 @@ translation_dict = {
         ("*", "{} of {} shape keys selected"): "{}個中 {} 個のシェイプキーを選択",
         ("", "Select\n[Ctrl] Group Select"): "選択\n[Ctrl] グループ選択",
         ("Operator", "Delete Selected Shape Keys"): "選択したシェイプキーを削除",
+        ("Operator", "Remove Drivers"): "ドライバーを削除",
+        ("*", "Removed {} drivers"): "{}個のドライバーを削除しました",
 
         # Mesh Edit
         ("Operator", "Reset Shape"): "形状をリセット",

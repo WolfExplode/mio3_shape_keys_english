@@ -32,6 +32,7 @@ class MIO3SK_MT_main(bpy.types.Menu):
         layout.separator()
 
         layout.operator("object.mio3sk_modifier_apply", icon="MODIFIER")
+        layout.operator("object.mio3sk_remove_drivers", icon="DRIVER").mode = "SELECTED"
         # layout.separator()
         # layout.menu("MIO3SK_MT_composer_menu", icon="LINKED")
         layout.separator()
