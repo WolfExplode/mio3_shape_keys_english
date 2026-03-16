@@ -2,8 +2,9 @@ import bpy
 import os
 import sys
 
-# DEBUG = True
-DEBUG = bool("--python" in sys.argv)
+# Set True to enable profiling (timing logs to System Console)
+DEBUG = True
+# DEBUG = bool("--python" in sys.argv)
 # print(bpy.app.python_args)
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "resource")

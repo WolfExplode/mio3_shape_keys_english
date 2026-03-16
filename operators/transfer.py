@@ -1,11 +1,19 @@
+import time
 import bpy
 import numpy as np
 from bpy.types import Context, Object
+
+try:
+    from scipy.spatial import cKDTree
+    _HAS_SCIPY = True
+except ImportError:
+    _HAS_SCIPY = False
 from bpy.props import BoolProperty, FloatProperty, EnumProperty
 from bpy.app.translations import pgettext_rpt
 from mathutils import Vector, kdtree
 from mathutils.geometry import intersect_point_tri_2d
 from ..classes.operator import Mio3SKGlobalOperator
+from ..globals import DEBUG
 from ..utils.ext_data import refresh_data, transfer_ext_data
 
 
@@ -89,6 +97,7 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
 
     def execute(self, context):
         self.start_time()
+        t0 = time.perf_counter()
 
         source_obj, target_obj = self.get_objects(context)
         if not source_obj or not target_obj:
@@ -151,15 +160,23 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             where=source_size > 1e-6,
         )
 
+        if DEBUG:
+            print("[transfer] setup + basis: {:.3f}s".format(time.perf_counter() - t0))
+        t_map = time.perf_counter()
+
         if self.mapping_mode == "INDEX":
             direct_map, interp_map = self.mapping_by_index(source_obj, target_obj)
         elif self.mapping_mode == "UV":
             direct_map, interp_map = self.mapping_by_uv(source_obj, target_obj, target_len)
         else:
+            if DEBUG:
+                print("[transfer] mapping backend: scipy cKDTree" if _HAS_SCIPY else "[transfer] mapping backend: mathutils KDTree")
             direct_map, interp_map = self.mapping_by_position(
                 source_len, target_len, source_basis_co, target_basis_co, source_scale, target_scale
             )
 
+        if DEBUG:
+            t_after_map = time.perf_counter()
         interp_map_op = {}
         for target_idx, mapping_info in interp_map.items():
             source_indices = [s_idx for s_idx, _w in mapping_info]
@@ -169,6 +186,33 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
                 weights /= total_weight
                 interp_map_op[target_idx] = (np.asarray(source_indices, dtype=np.int32), weights)
 
+        if DEBUG:
+            t_after_interp_op = time.perf_counter()
+            mapping_time = t_after_map - t_map
+            interp_op_time = t_after_interp_op - t_after_map
+            print("[transfer] mapping: {:.3f}s (direct={}, interp={}) interp_map_op: {:.3f}s".format(
+                mapping_time, len(direct_map), len(interp_map_op), interp_op_time
+            ))
+
+        max_neighbors = 8
+        interp_data = None
+        if interp_map_op:
+            if DEBUG:
+                t_mat = time.perf_counter()
+            t_indices = np.fromiter(interp_map_op.keys(), dtype=np.int32)
+            n_interp = len(t_indices)
+            src_matrix = np.zeros((n_interp, max_neighbors), dtype=np.int32)
+            w_matrix = np.zeros((n_interp, max_neighbors), dtype=np.float32)
+            for i, (source_indices, weights) in enumerate(interp_map_op.values()):
+                k = min(len(source_indices), max_neighbors)
+                src_matrix[i, :k] = source_indices[:k]
+                w_matrix[i, :k] = weights[:k]
+            interp_data = (t_indices, src_matrix, w_matrix)
+            if DEBUG:
+                print("[transfer] interp_matrix precompute: {:.3f}s".format(time.perf_counter() - t_mat))
+
+        t_keys = time.perf_counter()
+
         if self.target == "ACTIVE" or self.method == "MESH":
             target_keys = [source_obj.active_shape_key]
         elif self.target == "ALL":
@@ -176,6 +220,21 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
         else:
             selected_names = {ext.name for ext in source_obj.mio3sk.ext_data if ext.select}
             target_keys = [kb for kb in source_obj.data.shape_keys.key_blocks[1:] if kb.name in selected_names]
+
+        source_shape_co_flat = np.empty(source_len * 3, dtype=np.float32)
+        source_diff = np.empty((source_len, 3), dtype=np.float32)
+
+        key_timings = None
+        if DEBUG:
+            key_timings = {
+                "foreach_get": 0.0,
+                "diff": 0.0,
+                "transfer_direct": 0.0,
+                "transfer_matrix": 0.0,
+                "transfer_neighbor": 0.0,
+                "transfer_scale": 0.0,
+                "foreach_set": 0.0,
+            }
 
         for kb in target_keys:
             if self.method == "MESH":
@@ -186,23 +245,40 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
                 new_key = target_obj.shape_key_add(name=kb.name, from_mix=False)
 
             source_shape = source_obj.data.shape_keys.key_blocks.get(source_shape_name)
-            source_shape_co_flat = np.zeros(source_len * 3, dtype=np.float32)
+
+            if DEBUG:
+                t = time.perf_counter()
             source_shape.data.foreach_get("co", source_shape_co_flat)
+            if DEBUG:
+                key_timings["foreach_get"] += time.perf_counter() - t
+
+            if DEBUG:
+                t = time.perf_counter()
+            np.subtract(source_shape_co_flat.reshape(-1, 3), source_basis_co, out=source_diff)
+            if DEBUG:
+                key_timings["diff"] += time.perf_counter() - t
+
             source_shape_co = source_shape_co_flat.reshape(-1, 3)
-            source_diff = (source_shape_co_flat - source_basis_co_flat).reshape(-1, 3)
 
             try:
                 new_key_co = self.transfer_shape(
                     direct_map,
-                    interp_map_op,
+                    interp_data,
                     source_shape_co,
                     target_basis_co,
                     source_diff,
                     self.method == "KEY",
                     scale_factors,
                     self.scale_normalize or self.method == "MESH",
+                    key_timings,
                 )
+
+                if DEBUG:
+                    t = time.perf_counter()
                 new_key.data.foreach_set("co", new_key_co.ravel())
+                if DEBUG:
+                    key_timings["foreach_set"] += time.perf_counter() - t
+
                 new_key.value = 0.0
 
                 if self.transfer_properties and source_shape:
@@ -216,6 +292,20 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             except Exception as e:
                 self.report({"ERROR"}, str(e))
 
+        if DEBUG:
+            key_time = time.perf_counter() - t_keys
+            n_keys = len(target_keys)
+            avg = key_time / n_keys if n_keys else 0
+            print("[transfer] key loop ({} keys): {:.3f}s ({:.3f}s/key avg)".format(n_keys, key_time, avg))
+            if key_timings:
+                kt = key_timings
+                print("[transfer] key loop breakdown: foreach_get={:.3f}s diff={:.3f}s transfer(direct={:.3f}s matrix={:.3f}s neighbor={:.3f}s scale={:.3f}s) foreach_set={:.3f}s".format(
+                    kt["foreach_get"], kt["diff"],
+                    kt["transfer_direct"], kt["transfer_matrix"], kt["transfer_neighbor"], kt["transfer_scale"],
+                    kt["foreach_set"],
+                ))
+        t_refresh = time.perf_counter()
+
         if self.method == "MESH":
             source_obj.shape_key_remove(source_shape)
             source_obj.active_shape_key_index = source_active_shape_key_index
@@ -227,6 +317,10 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
 
         refresh_data(context, target_obj, check=True, group=True)
 
+        if DEBUG:
+            print("[transfer] refresh_data: {:.3f}s".format(time.perf_counter() - t_refresh))
+        t_ext = time.perf_counter()
+
         if self.transfer_properties and self.method == "KEY":
             target_key_blocks = target_obj.data.shape_keys.key_blocks
             source_prop = source_obj.mio3sk
@@ -236,23 +330,30 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
                 target_ext = target_prop.ext_data.get(kb.name)
                 transfer_ext_data(source_ext, target_ext, target_key_blocks)
             refresh_data(context, target_obj, group=True, composer=True)
+        if DEBUG:
+            print("[transfer] transfer_properties: {:.3f}s".format(time.perf_counter() - t_ext))
+            print("[transfer] TOTAL: {:.3f}s".format(time.perf_counter() - t0))
         self.print_time()
         return {"FINISHED"}
 
     @staticmethod
     def transfer_shape(
         direct_map,
-        interp_map_op,
+        interp_data,
         source_shape_co,
         target_basis_co,
         source_diff,
         is_key_method,
         scale_factors,
         scale_normalize,
+        key_timings=None,
     ):
         new_key_co = target_basis_co.copy()
+        timings = key_timings
 
         if direct_map:
+            if timings:
+                t0 = time.perf_counter()
             t_idx = np.fromiter(direct_map.keys(), dtype=np.int32)
             s_idx = np.fromiter(direct_map.values(), dtype=np.int32)
             if is_key_method:
@@ -262,19 +363,40 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
                     new_key_co[t_idx] = target_basis_co[t_idx] + source_diff[s_idx]
             else:
                 new_key_co[t_idx] = source_shape_co[s_idx]
+            if timings:
+                timings["transfer_direct"] += time.perf_counter() - t0
 
-        for t_idx, (source_indices, weights) in interp_map_op.items():
-            if is_key_method:
-                if scale_normalize:
-                    dx_dy_dz = (source_diff[source_indices] * scale_factors * weights[:, None]).sum(axis=0)
+        if interp_data:
+            t_indices, src_matrix, w_matrix = interp_data
+            n_interp = len(t_indices)
+            max_neighbors = src_matrix.shape[1]
+
+            if timings:
+                t0 = time.perf_counter()
+            dx_dy_dz = np.zeros((n_interp, 3), dtype=np.float32)
+            for j in range(max_neighbors):
+                sidx = src_matrix[:, j]
+                w = w_matrix[:, j, None]
+                if is_key_method:
+                    if scale_normalize:
+                        dx_dy_dz += source_diff[sidx] * scale_factors * w
+                    else:
+                        dx_dy_dz += source_diff[sidx] * w
                 else:
-                    dx_dy_dz = (source_diff[source_indices] * weights[:, None]).sum(axis=0)
+                    dx_dy_dz += source_shape_co[sidx] * w
+            if timings:
+                timings["transfer_neighbor"] += time.perf_counter() - t0
 
-                disp_length = float(np.linalg.norm(dx_dy_dz))
-                scale_factor = min(1.0, 1.0 / (disp_length / 2.0 + 0.5))
-                new_key_co[t_idx] = target_basis_co[t_idx] + (dx_dy_dz * scale_factor)
+            if timings:
+                t0 = time.perf_counter()
+            if is_key_method:
+                disp_length = np.linalg.norm(dx_dy_dz, axis=1, keepdims=True)
+                scale_factor = np.minimum(1.0, 1.0 / (disp_length / 2.0 + 0.5))
+                new_key_co[t_indices] = target_basis_co[t_indices] + (dx_dy_dz * scale_factor).astype(np.float32)
             else:
-                new_key_co[t_idx] = (source_shape_co[source_indices] * weights[:, None]).sum(axis=0)
+                new_key_co[t_indices] = dx_dy_dz.astype(np.float32)
+            if timings:
+                timings["transfer_scale"] += time.perf_counter() - t0
 
         return new_key_co
 
@@ -299,11 +421,60 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             source_co = (source_basis_co - source_center) / source_scale
             target_co = (target_basis_co - target_center) / target_scale
         else:
-            source_co = source_basis_co
-            target_co = target_basis_co
+            source_co = source_basis_co.astype(np.float64)
+            target_co = target_basis_co.astype(np.float64)
 
-        kd = kdtree.KDTree(source_len)
-        for i in range(source_len):
+        if _HAS_SCIPY:
+            direct_map, interp_map = self._mapping_by_position_scipy(
+                source_co, target_co, target_len, threshold
+            )
+        else:
+            direct_map, interp_map = self._mapping_by_position_mathutils(
+                source_co, target_co, target_len, threshold
+            )
+        return direct_map, interp_map
+
+    def _mapping_by_position_scipy(self, source_co, target_co, target_len, threshold):
+        tree = cKDTree(source_co)
+        dists_1, indices_1 = tree.query(target_co, k=1)
+        dists_1 = dists_1.ravel()
+        indices_1 = indices_1.ravel()
+
+        direct_mask = dists_1 <= threshold
+        direct_map = {i: int(indices_1[i]) for i in range(target_len) if direct_mask[i]}
+        unmapped = np.where(~direct_mask)[0]
+
+        if len(unmapped) == 0:
+            return direct_map, {}
+
+        dists_8, indices_8 = tree.query(target_co[unmapped], k=8)
+        interp_map = {}
+        for ui, target_idx in enumerate(unmapped):
+            idx = indices_8[ui]
+            d = dists_8[ui]
+            valid = d < np.inf
+            if not np.any(valid):
+                continue
+            idx = idx[valid]
+            d = d[valid].astype(np.float32)
+            max_d = float(d.max()) + 1e-6
+            norm_d = d / max_d
+            weights = np.exp(-4.0 * norm_d * norm_d)
+            threshold_w = float(weights.max()) * 0.1
+            mask = weights > threshold_w
+            if not np.any(mask):
+                continue
+            weights = weights[mask]
+            idx = idx[mask]
+            weights /= float(weights.sum())
+            interp_map[int(target_idx)] = list(zip(idx.tolist(), weights.tolist()))
+        return direct_map, interp_map
+
+    def _mapping_by_position_mathutils(self, source_co, target_co, target_len, threshold):
+        source_co = np.asarray(source_co, dtype=np.float64)
+        target_co = np.asarray(target_co, dtype=np.float64)
+        kd = kdtree.KDTree(len(source_co))
+        for i in range(len(source_co)):
             kd.insert(Vector(source_co[i]), i)
         kd.balance()
 
@@ -318,7 +489,6 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
                 unmapped_indices.append(i)
 
         interp_map = {}
-
         for i in unmapped_indices:
             query_pos = Vector(target_co[i])
             found_points = kd.find_n(query_pos, 8)
