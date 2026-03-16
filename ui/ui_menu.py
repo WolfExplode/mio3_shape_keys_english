@@ -36,6 +36,7 @@ class MIO3SK_MT_main(bpy.types.Menu):
         layout.operator("object.mio3sk_modifier_apply", icon="MODIFIER")
         layout.operator("object.mio3sk_remove_drivers", icon="DRIVER").mode = "SELECTED"
         layout.operator("object.mio3sk_set_value_zero", icon="OUTLINER_OB_EMPTY").mode = "SELECTED"
+        layout.operator("object.mio3sk_create_vertex_group", icon="GROUP_VERTEX")
         # layout.separator()
         # layout.menu("MIO3SK_MT_composer_menu", icon="LINKED")
         layout.separator()

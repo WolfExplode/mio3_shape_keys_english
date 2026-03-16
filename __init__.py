@@ -29,6 +29,7 @@ from .operators import replace_name
 from .operators import apply
 from .operators import apply_mask
 from .operators import apply_modifier
+from .operators import create_vgroup
 from .operators import switch
 from .operators import genmesh
 from .operators import bake_attr
@@ -79,6 +80,7 @@ modules = [
     select_keys,
     apply_mask,
     apply_modifier,
+    create_vgroup,
     group,
     tag,
     preset,

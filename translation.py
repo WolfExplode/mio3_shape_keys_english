@@ -220,6 +220,16 @@ translation_dict = {
         ("*", "Sets the selected shape keys value to zero"): "選択したシェイプキーの値をゼロに設定します",
         ("*", "Set {} shape keys to zero"): "{}個のシェイプキーをゼロに設定しました",
 
+        # create_vgroup.py
+        ("Operator", "Create Vertex Group"): "頂点グループを作成",
+        ("*", "Create vertex group from selected shape keys"): "選択したシェイプキーから頂点グループを作成します",
+        ("*", "Threshold"): "閾値",
+        ("*", "Minimum distance to consider vertex as affected (moved)"): "頂点を移動したとみなす最小距離",
+        ("*", "No shape keys selected"): "シェイプキーが選択されていません",
+        ("*", "Created {} vertex groups"): "{}個の頂点グループを作成しました",
+        ("*", "No vertices moved beyond threshold in selected keys"): "選択したキーで閾値を超えて移動した頂点がありません",
+        ("*", "Vertex group(s) already exist, used unique names: {}"): "頂点グループが既に存在するため、別名を使用しました: {}",
+
         # select_keys.py
         ("Operator", "Select unused keys"): "未使用のキーを選択",
         ("Operator", "Select keys that are unused"): "未使用のキーを選択します",

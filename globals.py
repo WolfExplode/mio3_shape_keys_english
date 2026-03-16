@@ -3,7 +3,7 @@ import os
 import sys
 
 # Set True to enable profiling (timing logs to System Console)
-DEBUG = True
+DEBUG = False
 # DEBUG = bool("--python" in sys.argv)
 # print(bpy.app.python_args)
 
