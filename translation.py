@@ -267,6 +267,7 @@ translation_dict = {
 
         # transfer.py
         ("Operator", "Transfer shape as shape key"): "シェイプキーとして形状を転送",
+        ("Operator", "Transfer Shape Key"): "シェイプキーを転送",
         ("Operator", "Transfer shapes from other object to active object"): "他のオブジェクトの形状やシェイプキーをアクティブオブジェクトに転送します",
         ("*", "Merge mesh shape"): "統合メッシュ形状",
         ("*", "Smart mapping"): "スマートマッピング",
@@ -278,7 +279,10 @@ translation_dict = {
         ("*", "Selected keys on source"): "ソース側の選択したキー",
         ("*", "Scale correction"): "スケール補正",
         ("*", "Correct when scale differs"): "スケールが異なる場合に補正します",
+        ("*", "Transfer Properties"): "プロパティも転送",
+        ("*", "Copy shape key properties (mute, slider range, vertex group, tags, composer rules) from source"): "ソースからシェイプキーのプロパティ（ミュート、スライダー範囲、頂点グループ、タグ、シェイプ同期のルール）をコピーします",
         ("*", "Select two objects"): "2つのオブジェクトを選択してください",
+        ("*", "Source object has no shape keys"): "ソースオブジェクトにシェイプキーがありません",
         ("*", "Both objects need UV map"): "両方のオブジェクトにUVマップが必要です",
         ("*", "Use smart mapping for meshes with different vertex counts"): "頂点数が異なるメッシュはスマートマッピングを使用してください",
         ("*", "{} vertices transferred, {} interpolated"): "{}個の頂点を転送、{}個の頂点を補間",

@@ -373,6 +373,35 @@ def copy_ext_info(source_ext, target_ext):
         new_tag.name = tag.name
 
 
+def transfer_ext_data(source_ext, target_ext, target_key_blocks):
+    """Copy ext_data from source to target. source/target may be on different objects."""
+    if not source_ext or not target_ext:
+        return
+    # Tags
+    target_ext.tags.clear()
+    for tag in source_ext.tags:
+        new_tag = target_ext.tags.add()
+        new_tag.name = tag.name
+    # Composer
+    target_ext.composer_enabled = source_ext.composer_enabled
+    target_ext.composer_type = source_ext.composer_type
+    target_ext.composer_source_object = source_ext.composer_source_object
+    target_ext.composer_source_mask = source_ext.composer_source_mask
+    target_ext.composer_smoothing_radius = source_ext.composer_smoothing_radius
+    target_ext.composer_source.clear()
+    for source in source_ext.composer_source:
+        if source.name in target_key_blocks:
+            new_item = target_ext.composer_source.add()
+            new_item.name = source.name
+            new_item.value = source.value
+            new_item.mask = source.mask
+    # Protect delta
+    target_ext.protect_delta = source_ext.protect_delta
+    # Group (is_group is refreshed by refresh_group_data, but we can set it for the key)
+    target_ext.is_group = source_ext.is_group
+    target_ext.group_color = source_ext.group_color
+
+
 def clear_filter(context: Context, obj: Object, clear_filter_select=False):
     prop_o = obj.mio3sk
     prop_w = context.window_manager.mio3sk

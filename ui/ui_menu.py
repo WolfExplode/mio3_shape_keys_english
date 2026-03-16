@@ -24,8 +24,8 @@ class MIO3SK_MT_main(bpy.types.Menu):
         layout.operator("object.mio3sk_generate_opposite", icon_value=icons.opposite)
 
         layout.separator()
-        layout.operator("object.mio3sk_shape_transfer", text="Join from Mesh Shape", icon="FILE_NEW").method = "MESH"
-        layout.operator("object.mio3sk_shape_transfer", text="Transfer Shape Key", icon="FILE_NEW").method = "KEY"
+        layout.operator("object.mio3sk_join_mesh_shape", icon="FILE_NEW")
+        layout.operator("object.mio3sk_transfer_shape_key", icon="FILE_NEW")
 
         layout.separator()
         layout.operator("object.mio3sk_replace")

@@ -6,7 +6,7 @@ from bpy.app.translations import pgettext_rpt
 from mathutils import Vector, kdtree
 from mathutils.geometry import intersect_point_tri_2d
 from ..classes.operator import Mio3SKGlobalOperator
-from ..utils.ext_data import refresh_data
+from ..utils.ext_data import refresh_data, transfer_ext_data
 
 
 class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
@@ -40,6 +40,11 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
     threshold: FloatProperty(name="Threshold", default=0.004, min=0.0, max=1.0, precision=3)
     threshold_uv: FloatProperty(name="Threshold", default=0.0001, min=0.0, max=1.0, precision=4)
     scale_normalize: BoolProperty(name="Scale correction", default=False, description="Correct when scale differs")
+    transfer_properties: BoolProperty(
+        name="Transfer Properties",
+        description="Copy shape key properties (mute, slider range, vertex group, tags, composer rules) from source",
+        default=False,
+    )
 
     def get_objects(self, context) -> tuple[Object, Object]:
         selected_objects = context.selected_objects
@@ -94,7 +99,8 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             return {"CANCELLED"}
 
         if self.method == "KEY" and not source_obj.data.shape_keys:
-            self.method = "MESH"
+            self.report({"ERROR"}, pgettext_rpt("Source object has no shape keys"))
+            return {"CANCELLED"}
 
         source_len = len(source_obj.data.vertices)
         target_len = len(target_obj.data.vertices)
@@ -103,10 +109,11 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             if source_len != target_len:
                 self.report({"ERROR"}, pgettext_rpt("Use smart mapping for meshes with different vertex counts"))
                 return {"CANCELLED"}
-            self.standard_prosess(context)
-            refresh_data(context, target_obj, check=True, group=True)
-            self.print_time()
-            return {"FINISHED"}
+            if self.target == "ACTIVE":
+                self.standard_prosess(context)
+                refresh_data(context, target_obj, check=True, group=True)
+                self.print_time()
+                return {"FINISHED"}
 
         if not target_obj.data.shape_keys:
             target_obj.shape_key_add(name="Basis", from_mix=False)
@@ -197,6 +204,15 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
                 )
                 new_key.data.foreach_set("co", new_key_co.ravel())
                 new_key.value = 0.0
+
+                if self.transfer_properties and source_shape:
+                    new_key.mute = source_shape.mute
+                    new_key.interpolation = source_shape.interpolation
+                    new_key.slider_min = source_shape.slider_min
+                    new_key.slider_max = source_shape.slider_max
+                    new_key.lock_shape = source_shape.lock_shape
+                    if source_shape.vertex_group and source_shape.vertex_group in target_obj.vertex_groups:
+                        new_key.vertex_group = source_shape.vertex_group
             except Exception as e:
                 self.report({"ERROR"}, str(e))
 
@@ -210,6 +226,16 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
         target_obj.active_shape_key_index = len(target_obj.data.shape_keys.key_blocks) - 1
 
         refresh_data(context, target_obj, check=True, group=True)
+
+        if self.transfer_properties and self.method == "KEY":
+            target_key_blocks = target_obj.data.shape_keys.key_blocks
+            source_prop = source_obj.mio3sk
+            target_prop = target_obj.mio3sk
+            for kb in target_keys:
+                source_ext = source_prop.ext_data.get(kb.name)
+                target_ext = target_prop.ext_data.get(kb.name)
+                transfer_ext_data(source_ext, target_ext, target_key_blocks)
+            refresh_data(context, target_obj, group=True, composer=True)
         self.print_time()
         return {"FINISHED"}
 
@@ -456,20 +482,42 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
         layout.use_property_split = True
         if self.method == "KEY":
             layout.prop(self, "target")
-        col = layout.column()
-        if self.transfer != "SMART":
-            col.enabled = False
-        col.prop(self, "mapping_mode", expand=True)
-        if self.mapping_mode == "UV":
-            layout.prop(self, "threshold_uv")
-        else:
-            layout.prop(self, "threshold")
+        if self.transfer == "SMART":
+            layout.prop(self, "mapping_mode", expand=True)
+            if self.mapping_mode == "UV":
+                layout.prop(self, "threshold_uv")
+            else:
+                layout.prop(self, "threshold")
         layout.prop(self, "scale_normalize")
+        if self.method == "KEY":
+            layout.prop(self, "transfer_properties")
+
+
+class OBJECT_OT_mio3sk_join_mesh_shape(OBJECT_OT_mio3sk_shape_transfer):
+    bl_idname = "object.mio3sk_join_mesh_shape"
+    bl_label = "Transfer shape as shape key"
+
+    def invoke(self, context: Context, event):
+        self.method = "MESH"
+        return super().invoke(context, event)
+
+
+class OBJECT_OT_mio3sk_transfer_shape_key(OBJECT_OT_mio3sk_shape_transfer):
+    bl_idname = "object.mio3sk_transfer_shape_key"
+    bl_label = "Transfer Shape Key"
+
+    def invoke(self, context: Context, event):
+        self.method = "KEY"
+        return super().invoke(context, event)
 
 
 def register():
     bpy.utils.register_class(OBJECT_OT_mio3sk_shape_transfer)
+    bpy.utils.register_class(OBJECT_OT_mio3sk_join_mesh_shape)
+    bpy.utils.register_class(OBJECT_OT_mio3sk_transfer_shape_key)
 
 
 def unregister():
+    bpy.utils.unregister_class(OBJECT_OT_mio3sk_transfer_shape_key)
+    bpy.utils.unregister_class(OBJECT_OT_mio3sk_join_mesh_shape)
     bpy.utils.unregister_class(OBJECT_OT_mio3sk_shape_transfer)
