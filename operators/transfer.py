@@ -444,7 +444,9 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
                 result = bpy.ops.object.shape_key_transfer()
 
             if result != {"FINISHED"}:
-                raise RuntimeError("頂点数が異なるメッシュはスマートマッピングを使用してください")
+                self.report({"ERROR"}, pgettext_rpt("Standard mode error: {}").format(
+                    pgettext_rpt("Use smart mapping for meshes with different vertex counts")))
+                return {"FINISHED"}
         except Exception as e:
             self.report({"ERROR"}, pgettext_rpt("Standard mode error: {}").format(str(e)))
             return {"FINISHED"}

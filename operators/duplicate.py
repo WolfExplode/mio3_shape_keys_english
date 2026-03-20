@@ -504,7 +504,7 @@ class OBJECT_OT_mio3sk_merge_lr(Mio3SKOperator):
         lr_pairs = self.find_lr_pairs_from_selection(selected_names)
 
         if not lr_pairs:
-            self.report({"WARNING"}, pgettext_rpt("No mergible L/R pair found"))
+            self.report({"WARNING"}, pgettext_rpt("No mergeable L/R pair found"))
             return {"CANCELLED"}
 
         created_pairs = []
