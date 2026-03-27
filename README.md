@@ -69,6 +69,16 @@ Added ability to remove drivers from selected shape keys
 [Added new operator create vertex group from selected shape keys](https://github.com/WolfExplode/mio3_shape_keys_english/commit/41536d34ffc962b8293f53d767f7d4df8a16eff6)
 
 
+[Expanded shape key presets](https://github.com/WolfExplode/mio3_shape_keys_english/commit/aecbc7b3d1353c7a355086a92562d2bdd90db410)
+Fixed shape key preset not saving some shape keys
+Added options for:
+- use selected shape key only
+- use shape keys with zero value
+
+
+#### Additional changes:
+- "show used keys only" should now also shows shape key groups so users can collapse or expand the group with "show used keys only" enabled
+- When you click the triangle to expand or collapse a group, that group header is now set as the active shape key, so the list stays focused on the group you clicked instead of jumping to the previous key.
 
 
 
