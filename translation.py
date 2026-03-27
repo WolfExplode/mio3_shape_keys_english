@@ -217,6 +217,10 @@ translation_dict = {
         ("*", "Imported {} preset(s)"): "{}件のプリセットをインポートしました",
         ("*", "Selected Keys Only"): "選択したキーのみ",
         ("*", "Include Zero Value"): "ゼロ値のキーを含める",
+        (
+            "*",
+            "Preset references {} missing shape key(s): {}",
+        ): "プリセットにメッシュに存在しないシェイプキーが{}件あります: {}",
 
         # repair.py
         ("Operator", "Repair shape keys"): "シェイプキーを修復",

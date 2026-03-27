@@ -1,8 +1,9 @@
 import bpy
+from bpy.app.translations import pgettext_rpt
 from bpy.props import BoolProperty, StringProperty, EnumProperty
 from ..classes.operator import Mio3SKOperator, Mio3SKGlobalOperator
 from ..utils.utils import get_unique_name, has_shape_key
-from ..utils.ext_data import refresh_data
+from ..utils.ext_data import refresh_data, refresh_filter_flag
 
 
 def _get_shape_keys_to_save(obj, use_selected_only, include_zero_value):
@@ -63,12 +64,27 @@ class OBJECT_OT_mio3sk_preset(Mio3SKOperator):
                 new_key.name = sk.name
                 new_key.value = sk.value
         else:
-            for kb in key_blocks:
-                kb.value = 0
+            preset_key_names = {p.name for p in preset.shape_keys}
+            mesh_key_names = {kb.name for kb in key_blocks}
+            missing = sorted(preset_key_names - mesh_key_names)
+            select_names = preset_key_names & mesh_key_names
             for p in preset.shape_keys:
                 kb = key_blocks.get(p.name)
                 if kb:
                     kb.value = p.value
+            for ext in prop_o.ext_data:
+                ext["select"] = ext.name in select_names
+            refresh_filter_flag(context, obj)
+            if missing:
+                miss_str = ", ".join(missing[:15])
+                if len(missing) > 15:
+                    miss_str = miss_str + ", …"
+                self.report(
+                    {"WARNING"},
+                    pgettext_rpt("Preset references {} missing shape key(s): {}").format(
+                        len(missing), miss_str
+                    ),
+                )
 
         return {"FINISHED"}
 
