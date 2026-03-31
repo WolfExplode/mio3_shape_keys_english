@@ -17,8 +17,9 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
     def draw_header(self, context):
         active_shape_key_index = context.object.active_shape_key_index
         active_shape_key = context.object.active_shape_key
+        key_name = active_shape_key.name if active_shape_key else pgettext_iface("(none)")
         row = self.layout.row()
-        row.label(text=pgettext_iface("Properties [{}] {}").format(active_shape_key_index, active_shape_key.name))
+        row.label(text=pgettext_iface("Properties [{}] {}").format(active_shape_key_index, key_name))
 
     def draw(self, context):
 

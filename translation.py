@@ -340,6 +340,7 @@ translation_dict = {
 
         # ui_props
         ("*", "Properties [{}] {}"): "プロパティ [{}] {}",
+        ("*", "(none)"): "なし",
         ("*", "Create empty rule"): "空のルールを作成",
         ("*", "Create from current value"): "現在の値から作成",
         ("*", "Apply this key"): "このキーを適用",
