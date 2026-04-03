@@ -79,7 +79,7 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
                 child_exts = [e for e in prop_o.ext_data if ext.name in e.composer_source]
                 if child_exts:
                     childs_col = box_composer.column()
-                    childs_col.label(text="{} ({})".format("Child shape keys", len(child_exts)), icon="ANIM")
+                    childs_col.label(text=pgettext_iface("Child shape keys ({})").format(len(child_exts)), icon="ANIM")
 
                     for child in child_exts:
                         childs_wow = childs_col.row()

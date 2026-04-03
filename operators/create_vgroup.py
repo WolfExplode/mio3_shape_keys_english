@@ -76,10 +76,19 @@ class OBJECT_OT_mio3sk_create_vertex_group(Mio3SKOperator):
                 renamed.append(kb.name)
             name = get_unique_name(vertex_group_names, kb.name)
             vertex_group_names.add(name)
-            vgroup = obj.vertex_groups.new(name=name)
 
-            affected_indices = np.where(affected)[0].astype(int).tolist()
-            vgroup.add(affected_indices, 1.0, "REPLACE")
+            # Keep the deformation strength as the weight so the group is not binary.
+            weights = diff.astype(np.float32, copy=True)
+            weights[~affected] = 0.0
+            max_weight = float(weights.max())
+            if max_weight <= 0.0:
+                continue
+            weights /= max_weight
+
+            vgroup = obj.vertex_groups.new(name=name)
+            affected_indices = np.where(affected)[0]
+            for idx in affected_indices:
+                vgroup.add([int(idx)], float(weights[idx]), "REPLACE")
             count += 1
 
         if count > 0:

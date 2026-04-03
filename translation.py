@@ -148,7 +148,7 @@ translation_dict = {
         ("*", "Remove source shape key"): "元のシェイプキーを削除",
         ("*", "Smoothing radius"): "スムージング半径",
         ("*", "No shape keys selected"): "シェイプキーが選択されていません",
-        ("*", "No mergible L/R pair found"): "統合可能なL/Rペアが見つかりません",
+        ("*", "No mergeable L/R pair found"): "統合可能なL/Rペアが見つかりません",
 
         # ext_data.py
         ("Operator", "Refresh extended properties"): "拡張プロパティの更新",
@@ -268,7 +268,6 @@ translation_dict = {
 
         # select_verts.py
         ("Operator", "Select vertices moved by shape keys"): "Basisから移動している頂点を選択します",
-        ("Operator", "Select asymmetric vertices"): "非対称の頂点を選択",
         ("Operator", "Select asymmetric vertices"): "非対称の頂点を選択します",
         ("*", "Minimum distance to consider as moved"): "移動とみなす最小距離",
         ("*", "Include asymmetric vertices in Basis"): "Basisの非対称頂点を含める",
@@ -344,7 +343,7 @@ translation_dict = {
         ("*", "Create empty rule"): "空のルールを作成",
         ("*", "Create from current value"): "現在の値から作成",
         ("*", "Apply this key"): "このキーを適用",
-        ("*", "Child shape keys"): "子シェイプキー",
+        ("*", "Child shape keys ({})"): "子シェイプキー ({})",
         ("*", "Group color"): "グループカラー",
         ("*", "Hide in group list"): "グループ一覧で非表示",
 
