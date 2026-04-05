@@ -135,12 +135,12 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
         target_basis_co = np.empty((target_len, 3), dtype=np.float32)
         source_obj.data.vertices.foreach_get("co", source_basis_co.ravel())
         target_obj.data.vertices.foreach_get("co", target_basis_co.ravel())
-        source_range = source_basis_co.ptp(axis=0)
-        target_range = target_basis_co.ptp(axis=0)
-        source_scale = source_range.max()
-        target_scale = target_range.max()
-
-        self.scale_normalize = source_scale == 0 or target_scale == 0 or abs(1 - source_scale / target_scale) > 0.05
+        source_range = np.ptp(source_basis_co, axis=0)
+        target_range = np.ptp(target_basis_co, axis=0)
+        source_scale = float(source_range.max())
+        target_scale = float(target_range.max())
+        need_scale_normalize = source_scale == 0.0 or target_scale == 0.0 or abs(1.0 - source_scale / target_scale) > 0.05
+        self.scale_normalize = True if need_scale_normalize else False
 
         return context.window_manager.invoke_props_dialog(self)
 
@@ -224,8 +224,6 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
                 source_len, target_len, source_basis_co, target_basis_co, source_scale, target_scale
             )
 
-        if DEBUG:
-            t_after_map = time.perf_counter()
         interp_map_op = {}
         for target_idx, mapping_info in interp_map.items():
             source_indices = [s_idx for s_idx, _w in mapping_info]
@@ -305,9 +303,7 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
                 new_key = target_obj.shape_key_add(name=key_name, from_mix=False)
 
             source_shape = source_obj.data.shape_keys.key_blocks.get(source_shape_name)
-
-            if DEBUG:
-                t = time.perf_counter()
+            source_shape_co_flat = np.zeros(source_len * 3, dtype=np.float32)
             source_shape.data.foreach_get("co", source_shape_co_flat)
             if DEBUG:
                 key_timings["foreach_get"] += time.perf_counter() - t
@@ -323,7 +319,7 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             try:
                 new_key_co = self.transfer_shape(
                     direct_map,
-                    interp_data,
+                    interp_map_op,
                     source_shape_co,
                     target_basis_co,
                     source_diff,
@@ -400,7 +396,7 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
     @staticmethod
     def transfer_shape(
         direct_map,
-        interp_data,
+        interp_map_op,
         source_shape_co,
         target_basis_co,
         source_diff,
@@ -413,53 +409,66 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
         timings = key_timings
 
         if direct_map:
-            if timings:
-                t0 = time.perf_counter()
             t_idx = np.fromiter(direct_map.keys(), dtype=np.int32)
             s_idx = np.fromiter(direct_map.values(), dtype=np.int32)
             if is_key_method:
+                diff = source_diff[direct_s_idx]
                 if scale_normalize:
-                    new_key_co[t_idx] = target_basis_co[t_idx] + (source_diff[s_idx] * scale_factors)
-                else:
-                    new_key_co[t_idx] = target_basis_co[t_idx] + source_diff[s_idx]
+                    diff = diff * scale_factors
+                new_key_co[direct_t_idx] = target_basis_co[direct_t_idx] + diff
             else:
                 new_key_co[t_idx] = source_shape_co[s_idx]
-            if timings:
-                timings["transfer_direct"] += time.perf_counter() - t0
 
-        if interp_data:
-            t_indices, src_matrix, w_matrix = interp_data
-            n_interp = len(t_indices)
-            max_neighbors = src_matrix.shape[1]
-
-            if timings:
-                t0 = time.perf_counter()
-            dx_dy_dz = np.zeros((n_interp, 3), dtype=np.float32)
-            for j in range(max_neighbors):
-                sidx = src_matrix[:, j]
-                w = w_matrix[:, j, None]
-                if is_key_method:
-                    if scale_normalize:
-                        dx_dy_dz += source_diff[sidx] * scale_factors * w
-                    else:
-                        dx_dy_dz += source_diff[sidx] * w
-                else:
-                    dx_dy_dz += source_shape_co[sidx] * w
-            if timings:
-                timings["transfer_neighbor"] += time.perf_counter() - t0
-
-            if timings:
-                t0 = time.perf_counter()
+        for t_idx, (source_indices, weights) in interp_map_op.items():
             if is_key_method:
-                disp_length = np.linalg.norm(dx_dy_dz, axis=1, keepdims=True)
-                scale_factor = np.minimum(1.0, 1.0 / (disp_length / 2.0 + 0.5))
-                new_key_co[t_indices] = target_basis_co[t_indices] + (dx_dy_dz * scale_factor).astype(np.float32)
+                if scale_normalize:
+                    dx_dy_dz = (source_diff[source_indices] * scale_factors * weights[:, None]).sum(axis=0)
+                else:
+                    dx_dy_dz = (source_diff[source_indices] * weights[:, None]).sum(axis=0)
+
+                disp_length = float(np.linalg.norm(dx_dy_dz))
+                scale_factor = min(1.0, 1.0 / (disp_length / 2.0 + 0.5))
+                new_key_co[t_idx] = target_basis_co[t_idx] + (dx_dy_dz * scale_factor)
             else:
-                new_key_co[t_indices] = dx_dy_dz.astype(np.float32)
-            if timings:
-                timings["transfer_scale"] += time.perf_counter() - t0
+                new_key_co[t_idx] = (source_shape_co[source_indices] * weights[:, None]).sum(axis=0)
 
         return new_key_co
+
+    @staticmethod
+    def build_interp_arrays(interp_map):
+        if not interp_map:
+            return None
+
+        target_indices = []
+        source_rows = []
+        weight_rows = []
+        max_n = 0
+
+        for t_idx, mapping_info in interp_map.items():
+            s_indices = [s for s, _w in mapping_info]
+            w = np.asarray([_w for _s, _w in mapping_info], dtype=np.float32)
+            total = float(w.sum())
+            if total <= 0.0:
+                continue
+            w /= total
+            target_indices.append(t_idx)
+            source_rows.append(s_indices)
+            weight_rows.append(w)
+            if len(s_indices) > max_n:
+                max_n = len(s_indices)
+
+        if not target_indices:
+            return None
+
+        n = len(target_indices)
+        s_table = np.zeros((n, max_n), dtype=np.int32)
+        w_table = np.zeros((n, max_n), dtype=np.float32)
+        for i in range(n):
+            k = len(source_rows[i])
+            s_table[i, :k] = source_rows[i]
+            w_table[i, :k] = weight_rows[i]
+
+        return (np.asarray(target_indices, dtype=np.int32), s_table, w_table)
 
     def mapping_by_position(
         self,
@@ -558,13 +567,12 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
 
             source_indices = np.fromiter((idx for _co, idx, _d in found_points), dtype=np.int32)
             dists = np.fromiter((_d for _co, _idx, _d in found_points), dtype=np.float32)
-            max_dist = float(dists.max()) + 1e-6
-            norm_dist = dists / max_dist
-            weights = np.exp(-4.0 * norm_dist * norm_dist)
+            dists = np.maximum(dists, 1e-8)
+            weights = 1.0 / (dists * dists)
 
             total_weight = float(weights.sum())
             if total_weight > 0.0:
-                threshold_weight = float(weights.max()) * 0.1
+                threshold_weight = float(weights.max()) * 0.01
                 mask = weights > threshold_weight
                 if mask.any():
                     weights = weights[mask]
@@ -671,26 +679,20 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
 
         uvs = np.empty((len(mesh.loops), 2), dtype=np.float32)
         uv_layer.data.foreach_get("uv", uvs.ravel())
-        loop_vertex_indices = np.array([loop.vertex_index for loop in mesh.loops])
+        loop_vertex_indices = np.empty(len(mesh.loops), dtype=np.int32)
+        mesh.loops.foreach_get("vertex_index", loop_vertex_indices)
 
         vert_uv_sum = np.zeros((len(mesh.vertices), 2), dtype=np.float32)
         vert_uv_count = np.zeros(len(mesh.vertices), dtype=np.int32)
-        for loop_idx, v_idx in enumerate(loop_vertex_indices):
-            vert_uv_sum[v_idx] += uvs[loop_idx]
-            vert_uv_count[v_idx] += 1
+        np.add.at(vert_uv_sum, loop_vertex_indices, uvs)
+        np.add.at(vert_uv_count, loop_vertex_indices, 1)
         vert_uvs = vert_uv_sum / np.maximum(vert_uv_count[:, None], 1)
         return vert_uvs
 
     def mapping_by_index(self, source_obj, target_obj):
-        direct_map = {}
         min_v_len = min(len(source_obj.data.vertices), len(target_obj.data.vertices))
-
-        for i in range(min_v_len):
-            direct_map[i] = i
-
-        interp_map = {}
-
-        return direct_map, interp_map
+        direct_map = dict(zip(range(min_v_len), range(min_v_len)))
+        return direct_map, {}
 
     def standard_prosess(self, context):
         obj = context.active_object

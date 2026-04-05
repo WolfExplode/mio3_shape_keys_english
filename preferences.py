@@ -39,7 +39,7 @@ class MIO3SK_Preferences(AddonPreferences):
     group_action: EnumProperty(
         name="Group Action",
         items=[("FILTER", "Filter", ""), ("JUMP", "Jump", "")],
-        default="JUMP",
+        default="FILTER",
         options=set(),
     )
     sidebar_factor: FloatProperty(name="Sidebar Size Factor", default=1.0, min=0.5, max=2.0, options=set())

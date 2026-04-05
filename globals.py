@@ -1,11 +1,7 @@
 import bpy
 import os
-import sys
 
-# Set True to enable profiling (timing logs to System Console)
-DEBUG = False
-# DEBUG = bool("--python" in sys.argv)
-# print(bpy.app.python_args)
+DEBUG = "vscode_development" in __file__
 
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "resource")
 TAGS_DIR = os.path.join(TEMPLATE_DIR, "tags")
