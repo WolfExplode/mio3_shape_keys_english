@@ -61,11 +61,22 @@ class OBJECT_OT_mio3sk_remove(Mio3SKOperator):
         if not is_local_obj(obj) or not has_shape_key(obj):
             return {"CANCELLED"}
 
+        def remove_value_driver(shape_key):
+            # Blender 5.1 can crash in driver evaluation if a driven key is deleted rapidly.
+            # Remove the value driver first to keep depsgraph state consistent.
+            if shape_key is None:
+                return
+            try:
+                shape_key.driver_remove("value")
+            except (TypeError, RuntimeError):
+                pass
+
         if self.mode == "ACTIVE":
             active_kb = obj.active_shape_key
             if active_kb.lock_shape:
                 self.report({"ERROR"}, "Active Shape Key is Locked")
                 return {"CANCELLED"}
+            remove_value_driver(active_kb)
             obj.shape_key_remove(active_kb)
         elif self.mode == "SELECTED":
             key_blocks = obj.data.shape_keys.key_blocks
@@ -73,8 +84,12 @@ class OBJECT_OT_mio3sk_remove(Mio3SKOperator):
             for kb in reversed(key_blocks):
                 if kb.name not in selected_names or kb.lock_shape:
                     continue
+                remove_value_driver(kb)
                 obj.shape_key_remove(kb)
         else:
+            if obj.data.shape_keys:
+                for kb in obj.data.shape_keys.key_blocks:
+                    remove_value_driver(kb)
             try:
                 if self.apply_mix:
                     bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
