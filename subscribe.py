@@ -20,6 +20,11 @@ def callback_mode():
         prop_s.composer_auto_skip = False
 
 
+def clear_select_state(key_blocks):
+    if bpy.app.version >= (5, 0, 0):
+        key_blocks.foreach_set("select", [False] * len(key_blocks))
+
+
 # アクティブシェイプキーが変わったときの処理
 def callback_active_shape_key_index():
     # start_time = time.time()
@@ -35,6 +40,9 @@ def callback_active_shape_key_index():
     prop_w = context.window_manager.mio3sk
 
     active_kb_name = obj.active_shape_key.name
+
+    # ToDo: Blender5の互換性
+    clear_select_state(obj.data.shape_keys.key_blocks)
 
     # 選択ヒストリーの更新
     temp_history = [h.name for h in prop_w.select_history]
@@ -55,6 +63,7 @@ def callback_active_shape_key_index():
             sync_obj: Object
             if sync_obj != obj and has_shape_key(sync_obj):
                 index = sync_obj.data.shape_keys.key_blocks.find(active_kb_name)
+                clear_select_state(sync_obj.data.shape_keys.key_blocks)
                 if index > -1:
                     sync_obj.active_shape_key_index = index
                 else:
