@@ -234,6 +234,7 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
                 interp_map_op[target_idx] = (np.asarray(source_indices, dtype=np.int32), weights)
 
         if DEBUG:
+            t_after_map = time.perf_counter()
             t_after_interp_op = time.perf_counter()
             mapping_time = t_after_map - t_map
             interp_op_time = t_after_interp_op - t_after_map
@@ -304,6 +305,8 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
 
             source_shape = source_obj.data.shape_keys.key_blocks.get(source_shape_name)
             source_shape_co_flat = np.zeros(source_len * 3, dtype=np.float32)
+            if DEBUG:
+                t = time.perf_counter()
             source_shape.data.foreach_get("co", source_shape_co_flat)
             if DEBUG:
                 key_timings["foreach_get"] += time.perf_counter() - t
@@ -412,10 +415,10 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             t_idx = np.fromiter(direct_map.keys(), dtype=np.int32)
             s_idx = np.fromiter(direct_map.values(), dtype=np.int32)
             if is_key_method:
-                diff = source_diff[direct_s_idx]
+                diff = source_diff[s_idx]
                 if scale_normalize:
                     diff = diff * scale_factors
-                new_key_co[direct_t_idx] = target_basis_co[direct_t_idx] + diff
+                new_key_co[t_idx] = target_basis_co[t_idx] + diff
             else:
                 new_key_co[t_idx] = source_shape_co[s_idx]
 
