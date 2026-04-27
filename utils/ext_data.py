@@ -220,6 +220,7 @@ def refresh_filter_flag(context: Context, obj: Object):
     filter_used = prop_o.filter_used
     name_filter = prop_o.filter_name
     name_filter = name_filter.lower() if name_filter else None
+    search_active = bool(name_filter)
 
     active_tags = None
     if prop_o.use_tags and prop_o.tag_list:
@@ -231,6 +232,33 @@ def refresh_filter_flag(context: Context, obj: Object):
     filter_invert = prop_w.tag_filter_invert
 
     ext_by_name = {ext.name: ext for ext in ext_data}
+
+    # Build shape-key -> parent-group map for search expansion.
+    parent_group_by_name = {}
+    current_group_name = None
+    for kb in key_blocks[1:]:
+        ext = ext_by_name.get(kb.name)
+        if not ext:
+            continue
+        if ext.is_group:
+            current_group_name = ext.name
+            parent_group_by_name[ext.name] = ext.name
+        else:
+            parent_group_by_name[ext.name] = current_group_name
+
+    # Track search matches and their parent groups so matched groups can be auto-expanded.
+    matched_names = set()
+    matched_group_names = set()
+    if search_active:
+        for ext in ext_data:
+            name = ext.name
+            if name == basis_name:
+                continue
+            if name_filter in name.lower():
+                matched_names.add(name)
+                parent_name = parent_group_by_name.get(name)
+                if parent_name:
+                    matched_group_names.add(parent_name)
 
     group_active = any(item.is_group_active for item in prop_o.ext_data if item.is_group)
     # グループの開閉フラグ
@@ -244,14 +272,15 @@ def refresh_filter_flag(context: Context, obj: Object):
         # is_group_close なら非表示。
         # group_active がTrueのときは is_group_active なグループだけ表示し、それ以外のヘッダーも含めて非表示。
         if ext.is_group:
+            force_open = search_active and ext.name in matched_group_names
             if group_active:
-                if not ext.is_group_active:
+                if not ext.is_group_active and not force_open:
                     hide_names.add(ext.name)  # 非アクティブなグループヘッダーも隠す
                     current_hide = True
                 else:
-                    current_hide = ext.is_group_close
+                    current_hide = False if force_open else ext.is_group_close
             else:
-                current_hide = ext.is_group_close
+                current_hide = False if force_open else ext.is_group_close
         else:
             if current_hide:
                 hide_names.add(ext.name)
@@ -278,7 +307,7 @@ def refresh_filter_flag(context: Context, obj: Object):
                 continue
 
         # 名前フィルター
-        if name_filter and (name_filter not in name.lower()):
+        if name_filter and (name_filter not in name.lower()) and (name not in matched_group_names):
             ext.filter_flag = True
             continue
 
