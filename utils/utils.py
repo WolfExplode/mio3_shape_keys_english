@@ -65,9 +65,7 @@ def move_shape_key_below(obj, anchor_idx, target_idx):
     key_blocks = obj.data.shape_keys.key_blocks
     count = len(key_blocks)
 
-    # ToDo: Blender5の互換性
-    if bpy.app.version >= (5, 0, 0):
-        obj.data.shape_keys.key_blocks.foreach_set("select", [False] * count)
+    clear_shape_key_selection(obj.data.shape_keys.key_blocks)
 
     if count < 2:
         return
@@ -109,6 +107,18 @@ def move_shape_key_below(obj, anchor_idx, target_idx):
         bpy.ops.object.shape_key_move(type="BOTTOM")
         for _ in range((count - 1) - destination):
             bpy.ops.object.shape_key_move(type="UP")
+
+
+def shape_key_supports_select(key_blocks):
+    if len(key_blocks) == 0:
+        return False
+    first = key_blocks[0]
+    return hasattr(first, "select")
+
+
+def clear_shape_key_selection(key_blocks):
+    if shape_key_supports_select(key_blocks):
+        key_blocks.foreach_set("select", [False] * len(key_blocks))
 
 
 def srgb2lnr(x):

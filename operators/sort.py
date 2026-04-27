@@ -1,7 +1,7 @@
 import bpy
 from bpy.props import BoolProperty, EnumProperty
 from ..classes.operator import Mio3SKOperator
-from ..utils.utils import is_local_obj, has_shape_key
+from ..utils.utils import is_local_obj, has_shape_key, clear_shape_key_selection
 from ..utils.ext_data import get_key_groups, get_group_ext, refresh_data
 
 
@@ -132,9 +132,7 @@ class OBJECT_OT_mio3sk_sort(Mio3SKOperator):
         if sorted_names is None:
             return {"CANCELLED"}
 
-        # ToDo: Blender5の互換性
-        if bpy.app.version >= (5, 0, 0):
-            key_blocks.foreach_set("select", [False] * len(key_blocks))
+        clear_shape_key_selection(key_blocks)
 
         current_key_name = obj.active_shape_key.name
         for key in sorted_names:

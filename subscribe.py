@@ -2,7 +2,7 @@ import bpy
 from bpy.types import Object
 from bpy.app.handlers import persistent
 from .globals import get_preferences
-from .utils.utils import is_obj, is_local_obj, is_local, has_shape_key, is_sync_collection
+from .utils.utils import is_obj, is_local_obj, is_local, has_shape_key, is_sync_collection, clear_shape_key_selection
 from .utils.ext_data import check_update, refresh_data, rename_ext_data
 from .utils.mirror import get_mirror_name
 
@@ -21,8 +21,7 @@ def callback_mode():
 
 
 def clear_select_state(key_blocks):
-    if bpy.app.version >= (5, 0, 0):
-        key_blocks.foreach_set("select", [False] * len(key_blocks))
+    clear_shape_key_selection(key_blocks)
 
 
 # アクティブシェイプキーが変わったときの処理
