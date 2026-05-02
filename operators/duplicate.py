@@ -8,7 +8,7 @@ from bpy.props import BoolProperty, FloatProperty, EnumProperty
 from bpy.app.translations import pgettext_iface as tt_iface
 from gpu_extras.batch import batch_for_shader
 from ..classes.operator import Mio3SKOperator
-from ..utils.utils import is_local_obj, has_shape_key, valid_shape_key, move_shape_key_below
+from ..utils.utils import is_local_obj, has_shape_key, valid_shape_key, move_shape_key_below, clear_shape_keys_selection
 from ..utils.ext_data import refresh_data, add_ext_data, copy_ext_info, create_composer_rule
 from ..utils.mirror import get_mirror_name, parse_side_name
 
@@ -228,9 +228,7 @@ class OBJECT_OT_mio3sk_generate_lr(Mio3SKOperator):
             key_names.insert(key_names.index(name) + 2, new_kb_r.name)
 
         if len(key_names) != before_len:
-            # ToDo: Blender5の互換性
-            if bpy.app.version >= (5, 0, 0):
-                key_blocks.foreach_set("select", [False] * len(key_blocks))
+            clear_shape_keys_selection(key_blocks)
 
             first_idx = key_names.index(selected_names[0])
             sorded_names = key_names[first_idx:]
@@ -401,9 +399,7 @@ class OBJECT_OT_mio3sk_generate_opposite(Mio3SKOperator):
 
         # 複数ある場合
         if len(selected_names) > 1 and len(key_names) != before_len:
-            # ToDo: Blender5の互換性
-            if bpy.app.version >= (5, 0, 0):
-                key_blocks.foreach_set("select", [False] * len(key_blocks))
+            clear_shape_keys_selection(key_blocks)
 
             first_idx = key_names.index(selected_names[0])
             sorded_names = key_names[first_idx:]

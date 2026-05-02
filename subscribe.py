@@ -2,7 +2,7 @@ import bpy
 from bpy.types import Object
 from bpy.app.handlers import persistent
 from .globals import get_preferences
-from .utils.utils import is_obj, is_local_obj, is_local, has_shape_key, is_sync_collection
+from .utils.utils import is_obj, is_local_obj, is_local, has_shape_key, is_sync_collection, clear_shape_keys_selection
 from .utils.ext_data import check_update, refresh_data, rename_ext_data
 from .utils.mirror import get_mirror_name
 
@@ -18,11 +18,6 @@ def callback_mode():
             if not prop_s.composer_auto_skip:
                 bpy.ops.object.mio3sk_composer_apply("EXEC_DEFAULT", dependence=True)
         prop_s.composer_auto_skip = False
-
-
-def clear_select_state(key_blocks):
-    if bpy.app.version >= (5, 0, 0):
-        key_blocks.foreach_set("select", [False] * len(key_blocks))
 
 
 # アクティブシェイプキーが変わったときの処理
@@ -42,7 +37,7 @@ def callback_active_shape_key_index():
     active_kb_name = obj.active_shape_key.name
 
     # ToDo: Blender5の互換性
-    clear_select_state(obj.data.shape_keys.key_blocks)
+    clear_shape_keys_selection(obj.data.shape_keys.key_blocks)
 
     # 選択ヒストリーの更新
     temp_history = [h.name for h in prop_w.select_history]
@@ -63,7 +58,7 @@ def callback_active_shape_key_index():
             sync_obj: Object
             if sync_obj != obj and has_shape_key(sync_obj):
                 index = sync_obj.data.shape_keys.key_blocks.find(active_kb_name)
-                clear_select_state(sync_obj.data.shape_keys.key_blocks)
+                clear_shape_keys_selection(sync_obj.data.shape_keys.key_blocks)
                 if index > -1:
                     sync_obj.active_shape_key_index = index
                 else:
