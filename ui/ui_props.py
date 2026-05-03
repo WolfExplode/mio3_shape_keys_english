@@ -12,7 +12,7 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
     def poll(cls, context):
         obj = context.object
         return obj is not None and has_shape_key(obj)
-    
+
     def draw_header(self, context):
         active_shape_key_index = context.object.active_shape_key_index
         active_shape_key = context.object.active_shape_key
@@ -67,7 +67,7 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
                     if ext.composer_type == "DEFORM":
                         self.layout_deform(box_composer, obj, ext)
                         sub = box_composer.row(align=True)
-                        sub.operator("object.mio3sk_composer_apply", text="このキーを適用", icon="TRIA_RIGHT").dependence =True
+                        sub.operator("object.mio3sk_composer_apply", text="このキーを適用", icon="TRIA_RIGHT").dependence = True
                     else:
                         self.layout_copy(box_composer, obj, ext)
                         # sub = box_composer.row(align=True)
@@ -81,7 +81,7 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
 
                     for child in child_exts:
                         childs_wow = childs_col.row()
-                        childs_wow.alignment="LEFT"
+                        childs_wow.alignment = "LEFT"
                         childs_wow.operator("object.mio3sk_active_key", icon="ZOOM_SELECTED", text=child.name, emboss=False).name = child.name
                         childs_wow.separator()
 
@@ -89,12 +89,31 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
         kb = active_shape_key
 
         layout.use_property_split = True
+        layout.use_property_decorate = False
         if key.use_relative:
             col = layout.column()
-            row = col.row(align=True, heading="Active Shape Key")
             sub = col.column(align=True)
-            sub.prop(kb, "slider_min", text="Range Min")
-            sub.prop(kb, "slider_max", text="Max")
+    
+            split = sub.split(align=True, factor=0.35)
+            split.alignment = "RIGHT"
+            split.label(text="Min")
+            sub_row = split.row(align=True)
+            op = sub_row.operator("object.mio3sk_set_props", text="", icon="LOOP_BACK")
+            op.mode, op.index, op.value = "slider_min", active_shape_key_index, 0
+            sub_row.prop(kb, "slider_min", text="")
+            op = sub_row.operator("object.mio3sk_set_props", text="", icon="REMOVE")
+            op.mode, op.index, op.value, op.add = "slider_min", active_shape_key_index, -1, True
+
+            split = sub.split(align=True, factor=0.35)
+            split.alignment = "RIGHT"
+            split.label(text="Max")
+            sub_row = split.row(align=True)
+            op = sub_row.operator("object.mio3sk_set_props", text="", icon="LOOP_BACK")
+            op.mode, op.index, op.value = "slider_max", active_shape_key_index, 1
+            sub_row.prop(kb, "slider_max", text="")
+            op = sub_row.operator("object.mio3sk_set_props", text="", icon="ADD")
+            op.mode, op.index, op.value, op.add = "slider_max", active_shape_key_index, +1, True
+
             sub = col.row(align=True)
             sub.prop_search(kb, "vertex_group", obj, "vertex_groups", text="Vertex Group")
             sub.menu("MIO3SK_MT_prop_vertex_group", text="", icon="DOWNARROW_HLT")
@@ -104,7 +123,7 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
             layout.prop(kb, "interpolation")
             row = layout.column()
             row.prop(key, "eval_time")
-        
+
         sub = col.column(align=True)
         sub.prop(ext, "protect_delta")
         if prop_s.use_group_prefix == "NONE":
@@ -112,12 +131,11 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
         if ext.is_group:
             sub.prop(ext, "group_color", text="グループカラー")
             sub.prop(ext, "is_group_hidden", text="グループ一覧で非表示")
-        
+
         # if pref.advanced:
         #     col.prop(ext, "name_ja")
         #     col.prop(ext, "old_name")
         #     col.prop(ext, "old_ratio")
-
 
     def layout_deform(self, box, obj, ext):
         col = box.column()
@@ -157,7 +175,6 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
                 col2.prop_search(source, "mask", obj, "vertex_groups", text="", icon="LIBRARY_DATA_BROKEN")
             else:
                 col2.prop_search(source, "mask", obj, "vertex_groups", text="")
-
 
             sub = col3.row()
 
