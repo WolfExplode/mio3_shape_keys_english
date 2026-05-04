@@ -18,11 +18,7 @@ def is_local_obj(obj):
 
 
 def has_shape_key(obj):
-    return (
-        obj.type in {"MESH", "CURVE", "LATTICE"}
-        and obj.data.shape_keys is not None
-        and 0 <= obj.active_shape_key_index
-    )
+    return obj.type in {"MESH", "CURVE", "LATTICE"} and obj.data.shape_keys is not None and 0 <= obj.active_shape_key_index
 
 
 def valid_shape_key(obj):
@@ -31,6 +27,11 @@ def valid_shape_key(obj):
 
 def is_sync_collection(obj):
     return is_allow_type(obj) and obj.mio3sk.syncs is not None
+
+
+def clear_shape_keys_selection(key_blocks):
+    if (count := len(key_blocks)) > 0 and hasattr(key_blocks[0], "select"):
+        key_blocks.foreach_set("select", [False] * count)
 
 
 def get_unique_name(existing_names, base_name="Group", sep=" "):
@@ -61,11 +62,11 @@ def get_unique_name_windows(existing_names, base_name="Preset"):
 
 
 def move_shape_key_below(obj, anchor_idx, target_idx):
-    """ target_idx のシェイプキーを anchor_idx の直下に移動する """
+    """target_idx のシェイプキーを anchor_idx の直下に移動する"""
     key_blocks = obj.data.shape_keys.key_blocks
     count = len(key_blocks)
 
-    clear_shape_key_selection(obj.data.shape_keys.key_blocks)
+    clear_shape_keys_selection(key_blocks)
 
     if count < 2:
         return
@@ -89,7 +90,7 @@ def move_shape_key_below(obj, anchor_idx, target_idx):
     obj.active_shape_key_index = target_idx
 
     direct_moves = abs(target_idx - destination)
-    top_moves = destination 
+    top_moves = destination
     bottom_moves = count - destination
 
     if direct_moves <= min(top_moves, bottom_moves):
@@ -109,18 +110,6 @@ def move_shape_key_below(obj, anchor_idx, target_idx):
             bpy.ops.object.shape_key_move(type="UP")
 
 
-def shape_key_supports_select(key_blocks):
-    if len(key_blocks) == 0:
-        return False
-    first = key_blocks[0]
-    return hasattr(first, "select")
-
-
-def clear_shape_key_selection(key_blocks):
-    if shape_key_supports_select(key_blocks):
-        key_blocks.foreach_set("select", [False] * len(key_blocks))
-
-
 def srgb2lnr(x):
     if x <= 0.04045:
         return x / 12.92
@@ -133,19 +122,18 @@ def is_close_color(col, target):
     return abs(col.r - target[0]) < 0.0001 and abs(col.g - target[1]) < 0.0001 and abs(col.b - target[2]) < 0.0001
 
 
-
 def pad_text(text, target_width, fillchar=" "):
     w = 0
     for ch in text:
         if ord(ch) >= 0x1100 and (
-            0x1100 <= ord(ch) <= 0x115F or
-            0x2E80 <= ord(ch) <= 0xA4CF or
-            0xAC00 <= ord(ch) <= 0xD7A3 or
-            0xF900 <= ord(ch) <= 0xFAFF or
-            0xFE10 <= ord(ch) <= 0xFE19 or
-            0xFE30 <= ord(ch) <= 0xFE6F or
-            0xFF00 <= ord(ch) <= 0xFF60 or
-            0xFFE0 <= ord(ch) <= 0xFFE6
+            0x1100 <= ord(ch) <= 0x115F
+            or 0x2E80 <= ord(ch) <= 0xA4CF
+            or 0xAC00 <= ord(ch) <= 0xD7A3
+            or 0xF900 <= ord(ch) <= 0xFAFF
+            or 0xFE10 <= ord(ch) <= 0xFE19
+            or 0xFE30 <= ord(ch) <= 0xFE6F
+            or 0xFF00 <= ord(ch) <= 0xFF60
+            or 0xFFE0 <= ord(ch) <= 0xFFE6
         ):
             w += 2
         else:

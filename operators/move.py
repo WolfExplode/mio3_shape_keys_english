@@ -1,7 +1,7 @@
 import bpy
 from bpy.props import EnumProperty, IntProperty
 from ..classes.operator import Mio3SKOperator
-from ..utils.utils import is_local_obj, valid_shape_key, move_shape_key_below, clear_shape_key_selection
+from ..utils.utils import is_local_obj, valid_shape_key, move_shape_key_below, clear_shape_keys_selection
 from ..utils.ext_data import refresh_data, get_key_groups
 
 
@@ -42,7 +42,7 @@ class OBJECT_OT_mio3sk_move(Mio3SKOperator):
 
         key_blocks = obj.data.shape_keys.key_blocks
 
-        clear_shape_key_selection(key_blocks)
+        clear_shape_keys_selection(key_blocks)
 
         if self.type in {"TOP", "BOTTOM"}:
             bpy.ops.object.shape_key_move(type=self.type)
@@ -85,7 +85,7 @@ class OBJECT_OT_mio3sk_move_below(Mio3SKOperator):
             move_idx = key_blocks.find(selected_names[0])
             move_shape_key_below(obj, anchor_idx, move_idx)
         else:
-            clear_shape_key_selection(key_blocks)
+            clear_shape_keys_selection(key_blocks)
 
             remaining = [name for name in key_blocks.keys() if name not in selected_names]
             active_index = remaining.index(active_kb.name)
@@ -142,7 +142,7 @@ class OBJECT_OT_mio3sk_move_group(Mio3SKOperator):
 
         current_key_name = obj.active_shape_key.name
 
-        clear_shape_key_selection(key_blocks)
+        clear_shape_keys_selection(key_blocks)
 
         wm = context.window_manager
         wm.progress_begin(0, len(sorted_names))

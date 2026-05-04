@@ -42,6 +42,7 @@ from .operators import tag
 from .operators import preset
 from .operators import ext_data
 from .operators import import_export
+from .operators import props
 
 from .ui import ui_main
 from .ui import ui_side
@@ -86,6 +87,7 @@ modules = [
     preset,
     ext_data,
     import_export,
+    props,
     ui_main,
     ui_side,
     ui_props,
