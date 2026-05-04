@@ -142,7 +142,7 @@ translation_dict = {
 
         # duplicate.py
         ("Operator", "Generate L/R shape keys from active key"): "アクティブキーから左右のシェイプキーを生成します",
-        ("Operator", "Generate mirror shape keys from active L/R keys"): "アクティブなL/Rシェイプキーから反対側のシェイプキーを生成",
+        ("Operator", "Generate missing shape keys from selected L/R keys"): "選択したL/Rシェイプキーから不足しているシェイプキーを生成",
         ("Operator", "Merge selected _L, _R shape keys into new shape key"): "選択した_L、_Rシェイプキーを統合して新しいシェイプキーを作成します",
         ("*", "Create shape sync rule"): "シェイプ同期ルールを作成",
         ("*", "Create rules for continuous sync with source data"): "元データと継続的に同期するためのルールを作成します",

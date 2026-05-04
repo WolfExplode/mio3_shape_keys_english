@@ -324,7 +324,7 @@ class OBJECT_OT_mio3sk_generate_lr(Mio3SKOperator):
 class OBJECT_OT_mio3sk_generate_opposite(Mio3SKOperator):
     bl_idname = "object.mio3sk_generate_opposite"
     bl_label = "Create Mirror Shape Keys"
-    bl_description = "Generate mirror shape keys from active L/R keys"
+    bl_description = "Generate missing shape keys from selected L/R keys"
     bl_options = {"REGISTER", "UNDO"}
 
     mode: EnumProperty(

@@ -24,7 +24,26 @@ class OBJECT_OT_mio3sk_join_keys(Mio3SKOperator):
         options={"SKIP_SAVE"},
     )
     clear_value: BoolProperty(name="Clear value", default=False, options={"SKIP_SAVE"})
+    selected_only: BoolProperty(name="Selected keys only", default=False, options={"SKIP_SAVE"})
     # clear_shape: BoolProperty(name="形状を初期化", default=True, options={"SKIP_SAVE"})
+
+    def _get_selected_names(self, obj):
+        names = {ext.name for ext in obj.mio3sk.ext_data if ext.select}
+        if not names:
+            names.add(obj.active_shape_key.name)
+        return names
+
+    def _snapshot_and_zero_unselected(self, key_blocks, selected_names):
+        snapshot = []
+        for kb in key_blocks:
+            if kb.name not in selected_names and kb.value != 0.0:
+                snapshot.append((kb, kb.value))
+                kb.value = 0.0
+        return snapshot
+
+    def _restore_values(self, snapshot):
+        for kb, value in snapshot:
+            kb.value = value
 
     @classmethod
     def poll(cls, context):
@@ -35,9 +54,12 @@ class OBJECT_OT_mio3sk_join_keys(Mio3SKOperator):
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
+        obj = context.active_object
         self.layout.label(text="Join To")
         self.layout.prop(self, "target", expand=True)
         self.layout.prop(self, "clear_value")
+        if any(ext.select for ext in obj.mio3sk.ext_data):
+            self.layout.prop(self, "selected_only")
         # self.layout.prop(self, "clear_shape")
 
     def execute(self, context):
@@ -52,12 +74,31 @@ class OBJECT_OT_mio3sk_join_keys(Mio3SKOperator):
             basis_kb = shape_keys.reference_key
             active_kb = obj.active_shape_key
 
-            use_key_blocks = [kb for kb in key_blocks if kb.value or active_kb == kb]
+            snapshot = []
+            selected_names_for_mix = None
+            if self.selected_only:
+                selected_names_for_mix = self._get_selected_names(obj)
+                selected_names_for_mix.add(active_kb.name)
+                selected_names_for_mix.add(basis_kb.name)
+                snapshot = self._snapshot_and_zero_unselected(key_blocks, selected_names_for_mix)
+
+            if self.selected_only and selected_names_for_mix is not None:
+                use_key_blocks = [
+                    kb
+                    for kb in key_blocks
+                    if kb.name in selected_names_for_mix and (kb.value or active_kb == kb)
+                ]
+            else:
+                use_key_blocks = [kb for kb in key_blocks if kb.value or active_kb == kb]
 
             if len(use_key_blocks) < 1:
+                if snapshot:
+                    self._restore_values(snapshot)
                 return {"CANCELLED"}
 
             new_kb = obj.shape_key_add(name="__tmp__", from_mix=True)
+            if snapshot:
+                self._restore_values(snapshot)
 
             v_len = len(obj.data.vertices)
 
@@ -94,7 +135,14 @@ class OBJECT_OT_mio3sk_join_keys(Mio3SKOperator):
 
             clear_filter(context, obj)
         else:
+            snapshot = []
+            if self.selected_only:
+                mix_names = self._get_selected_names(obj)
+                mix_names.add(shape_keys.reference_key.name)
+                snapshot = self._snapshot_and_zero_unselected(key_blocks, mix_names)
             new_key = obj.shape_key_add(name=get_unique_name(key_blocks.keys(), "Key"), from_mix=True)
+            if snapshot:
+                self._restore_values(snapshot)
             obj.active_shape_key_index = key_blocks.find(new_key.name)
 
         refresh_data(context, obj, check=True, group=True, filter=True)
