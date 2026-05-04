@@ -464,7 +464,12 @@ class WM_PG_mio3sk(PropertyGroup):
         options=set(),
         # poll=poll_source_object,
     )
-    smart_preview: BoolProperty(name="Smart Preview", description="アクティブキーをプレビューします（ロックしたシェイプキーの値を維持します）", default=False, options=set())
+    smart_preview: BoolProperty(
+        name="Smart Preview",
+        description="Preview the active key while preserving values of locked shape keys",
+        default=False,
+        options=set(),
+    )
 
 
 classes = [

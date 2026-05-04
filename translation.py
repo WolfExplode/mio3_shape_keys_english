@@ -66,6 +66,7 @@ translation_dict = {
         # Mesh Edit
         ("Operator", "Reset Shape"): "形状をリセット",
         ("*", "Reset Shape Key"): "シェイプキーの形状をリセット",
+        ("*", "Reset to Basis"): "Basisに合わせる",
         ("Operator", "Repair"): "修復",
 
         # Object
@@ -201,6 +202,10 @@ translation_dict = {
         ("Operator", "Mirror active key left/right"): "アクティブなキーを左右反転",
         ("Operator", "Mirror active shape key on X axis"): "アクティブなシェイプキーをX軸でミラーリングします",
 
+        # copy.py
+        ("Operator", "Copy Shape Key"): "ブレンド元として記憶",
+        ("*", "Copy selected verts as the blend source"): "選択した頂点をブレンド元としてコピーします。",
+
         # move.py
         ("Operator", "Move below active key"): "アクティブキーの下に移動",
         ("Operator", "Change group order"): "グループの並び順を変更",
@@ -229,7 +234,10 @@ translation_dict = {
         ("*", "Vertices with movement only"): "動きのある頂点のみ",
 
         # reset.py
-        ("Operator", "Reset selected key shapes"): "選択したキーの形状をリセット",
+        ("Operator", "Reset Active Key to Basis"): "アクティブキーをBasisに合わせる",
+        ("Operator", "Reset Listed Keys to Basis"): "リストのキーをBasisに合わせる",
+        ("*", "Reset selected verts to Basis positions"): "選択した頂点をBasisの位置に戻します",
+        ("*", "For each shape key checked in the sidebar list, replace stored vertex positions with the Basis mesh (Object mode)"): "サイドバーでチェックした各シェイプキーの格納頂点をBasisメッシュの位置に置き換えます（オブジェクトモードのみ）。",
         ("Operator", "Set Value To Zero"): "値をゼロに設定",
         ("*", "Sets the selected shape keys value to zero"): "選択したシェイプキーの値をゼロに設定します",
         ("*", "Set {} shape keys to zero"): "{}個のシェイプキーをゼロに設定しました",
@@ -267,8 +275,12 @@ translation_dict = {
         ("*", "No vertices selected"): "頂点が選択されていません",
 
         # select_verts.py
-        ("Operator", "Select vertices moved by shape keys"): "Basisから移動している頂点を選択します",
-        ("Operator", "Select asymmetric vertices"): "非対称の頂点を選択します",
+        ("Operator", "Select Moved by Shape Keys"): "シェイプキーで動いた頂点を選択",
+        ("*", "Select vertices moved by shape keys"): "シェイプキーで移動した頂点を選択します",
+        ("Operator", "Select Asymmetric Vertices"): "非対称の頂点を選択",
+        ("*", "Select vertices that are asymmetric for the active shape key"): "アクティブシェイプキーで左右非対称な頂点を選択します",
+        ("*", "Moved by Shape Keys"): "シェイプキーで動いた頂点",
+        ("*", "Shape key layers missing in edit mesh; try toggling edit mode or updating shape keys"): "編集メッシュにシェイプキーのレイヤーがありません。編集モードの切り替えやシェイプキーの更新を試してください。",
         ("*", "Minimum distance to consider as moved"): "移動とみなす最小距離",
         ("*", "Include asymmetric vertices in Basis"): "Basisの非対称頂点を含める",
         ("*", "Include vertices asymmetric at Basis"): "Basisの時点で非対称な頂点も選択します",
@@ -284,7 +296,7 @@ translation_dict = {
 
         # symmetrize.py
         ("Operator", "Symmetrize shape keys"): "シェイプキーを対称化",
-        ("Operator", "Symmetrize shape keys based on Basis"): "Basisに基づきシェイプキーを対称化",
+        ("*", "Symmetrize selected verts"): "選択した頂点を対称化",
 
         # tag.py
         ("Operator", "Assign and remove tags"): "タグの割り当てと解除",
@@ -387,6 +399,8 @@ translation_dict = {
         ("*", "Skip auto apply"): "自動適用のスキップ",
         ("*", "Source object"): "転送元のオブジェクト",
         ("*", "Sort basis"): "ソートの基準",
+        ("*", "Smart Preview"): "スマートプレビュー",
+        ("*", "Preview the active key while preserving values of locked shape keys"): "アクティブキーをプレビューします（ロックしたシェイプキーの値を維持します）",
     }
 }  # fmt: skip
 

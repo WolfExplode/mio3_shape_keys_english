@@ -1,4 +1,5 @@
 import bpy
+from bpy.app.translations import pgettext_iface as tt_iface
 from ..classes.operator import Mio3SKSidePanel
 from ..utils.utils import is_obj, has_shape_key
 from ..icons import icons
@@ -17,7 +18,7 @@ class MIO3SK_PT_side_main(Mio3SKSidePanel):
         layout = self.layout
         col = layout.column(align=True)
         row = col.row(align=True)
-        row.operator("mesh.mio3sk_reset", text="Reset", icon_value=icons.eraser)
+        row.operator("mesh.mio3sk_reset", text=tt_iface("Reset to Basis"), icon_value=icons.eraser)
         row.operator("mesh.mio3sk_smooth_shape", text="Smooth", icon_value=icons.smooth)
         row.menu("MIO3SK_MT_side", text="", icon="DOWNARROW_HLT")
         col.separator()

@@ -7,7 +7,9 @@ from ..utils.utils import is_obj, is_local_obj, valid_shape_key
 class MESH_OT_mio3sk_copy(Mio3SKOperator):
     bl_idname = "mesh.mio3sk_copy"
     bl_label = "Copy Shape Key"
-    bl_description = ""
+    bl_description = (
+        "Copy selected verts as the blend source"
+    )
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
