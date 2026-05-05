@@ -1,10 +1,17 @@
 import bpy
+import time
 from bpy.types import Object
 from bpy.app.handlers import persistent
 from .globals import get_preferences
 from .utils.utils import is_obj, is_local_obj, is_local, has_shape_key, is_sync_collection, clear_shape_keys_selection
 from .utils.ext_data import check_update, refresh_data, rename_ext_data
 from .utils.mirror import get_mirror_name
+
+MORPH_ATTR_NAME = "mio3sk_morph"
+MORPH_TIMER_INTERVAL = 0.05
+_morph_was_stroking = False
+_morph_last_apply = 0.0
+_morph_is_applying = False
 
 
 def callback_mode():
@@ -185,6 +192,71 @@ def init_addon():
             pass
 
 
+def _is_morph_context(context):
+    obj = context.active_object
+    if obj is None or obj.type != "MESH" or not has_shape_key(obj):
+        return False
+    if obj.mode != "SCULPT":
+        return False
+
+    prop_w = context.window_manager.mio3sk
+    if not prop_w.morph_auto_apply or not prop_w.copy_source:
+        return False
+
+    attr = obj.data.color_attributes.get(MORPH_ATTR_NAME)
+    return attr is not None and obj.data.color_attributes.active_color == attr
+
+
+def _is_sculpt_stroking(context):
+    window = context.window
+    if window is None:
+        return False
+    for op in window.modal_operators:
+        bl_idname = getattr(op, "bl_idname", "")
+        if bl_idname == "SCULPT_OT_brush_stroke":
+            return True
+    return False
+
+
+def morph_auto_apply_timer():
+    global _morph_was_stroking, _morph_last_apply, _morph_is_applying
+    context = bpy.context
+
+    if _morph_is_applying:
+        return MORPH_TIMER_INTERVAL
+
+    if not _is_morph_context(context):
+        _morph_was_stroking = False
+        return MORPH_TIMER_INTERVAL
+
+    is_stroking = _is_sculpt_stroking(context)
+    if is_stroking:
+        _morph_was_stroking = True
+        return MORPH_TIMER_INTERVAL
+
+    if _morph_was_stroking:
+        now = time.time()
+        if now - _morph_last_apply > MORPH_TIMER_INTERVAL:
+            _morph_is_applying = True
+            try:
+                bpy.ops.ed.undo_push(message="Apply Morph")
+                bpy.ops.object.mio3sk_morph_apply("EXEC_DEFAULT", from_timer=True)
+                bpy.ops.ed.undo_push(message="Apply Morph")
+                _morph_last_apply = now
+            except:
+                pass
+            finally:
+                _morph_is_applying = False
+        _morph_was_stroking = False
+
+    return MORPH_TIMER_INTERVAL
+
+
+def ensure_morph_timer():
+    if not bpy.app.timers.is_registered(morph_auto_apply_timer):
+        bpy.app.timers.register(morph_auto_apply_timer, first_interval=MORPH_TIMER_INTERVAL)
+
+
 msgbus_owner = object()
 
 
@@ -245,10 +317,12 @@ def undo_redo_handler(scene):
 def load_handler(scene):
     handler_register()
     init_addon()
+    ensure_morph_timer()
 
 
 def register():
     bpy.app.timers.register(init_addon, first_interval=0.1)
+    ensure_morph_timer()
     bpy.app.handlers.redo_post.append(undo_redo_handler)
     bpy.app.handlers.undo_post.append(undo_redo_handler)
     handler_register()
@@ -256,6 +330,8 @@ def register():
 
 def unregister():
     bpy.msgbus.clear_by_owner(msgbus_owner)
+    if bpy.app.timers.is_registered(morph_auto_apply_timer):
+        bpy.app.timers.unregister(morph_auto_apply_timer)
     bpy.app.handlers.load_post.remove(load_handler)
     bpy.app.handlers.redo_post.remove(undo_redo_handler)
     bpy.app.handlers.undo_post.remove(undo_redo_handler)

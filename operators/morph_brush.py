@@ -64,6 +64,7 @@ class OBJECT_OT_mio3sk_morph_apply(Mio3SKOperator):
         description="Reset the morph weight attribute to white after applying",
         default=True,
     )
+    from_timer: BoolProperty(default=False, options={"SKIP_SAVE", "HIDDEN"})
 
     @classmethod
     def poll(cls, context):
@@ -73,7 +74,8 @@ class OBJECT_OT_mio3sk_morph_apply(Mio3SKOperator):
         return valid_shape_key(obj) and bool(context.window_manager.mio3sk.copy_source)
 
     def execute(self, context):
-        bpy.ops.ed.undo_push(message="Apply Morph")
+        if not self.from_timer:
+            bpy.ops.ed.undo_push(message="Apply Morph")
         self.start_time()
         obj = context.active_object
         if not is_local_obj(obj) or not valid_shape_key(obj):

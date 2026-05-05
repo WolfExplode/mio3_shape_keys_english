@@ -470,6 +470,12 @@ class WM_PG_mio3sk(PropertyGroup):
         default=False,
         options=set(),
     )
+    morph_auto_apply: BoolProperty(
+        name="Auto Apply Morph",
+        description="Automatically apply morph after each sculpt stroke when mio3sk_morph is the active color attribute",
+        default=False,
+        options=set(),
+    )
 
 
 classes = [

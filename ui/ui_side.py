@@ -110,6 +110,7 @@ class MIO3SK_PT_sub_morph(Mio3SKSidePanel):
 
         col.separator()
         col.operator("object.mio3sk_morph_setup", text="Setup Morph Weights", icon="BRUSH_DATA")
+        col.prop(prop_w, "morph_auto_apply", text="Auto apply on stroke end")
         col.operator("object.mio3sk_morph_apply", text="Apply Morph", icon="CHECKMARK")
 
 
