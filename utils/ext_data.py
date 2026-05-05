@@ -220,6 +220,7 @@ def refresh_filter_flag(context: Context, obj: Object):
     filter_used = prop_o.filter_used
     name_filter = prop_o.filter_name
     name_filter = name_filter.lower() if name_filter else None
+    search_active = bool(name_filter)
 
     active_tags = None
     if prop_o.use_tags and prop_o.tag_list:
@@ -231,6 +232,33 @@ def refresh_filter_flag(context: Context, obj: Object):
     filter_invert = prop_w.tag_filter_invert
 
     ext_by_name = {ext.name: ext for ext in ext_data}
+
+    # Build shape-key -> parent-group map for search expansion.
+    parent_group_by_name = {}
+    current_group_name = None
+    for kb in key_blocks[1:]:
+        ext = ext_by_name.get(kb.name)
+        if not ext:
+            continue
+        if ext.is_group:
+            current_group_name = ext.name
+            parent_group_by_name[ext.name] = ext.name
+        else:
+            parent_group_by_name[ext.name] = current_group_name
+
+    # Track search matches and their parent groups so matched groups can be auto-expanded.
+    matched_names = set()
+    matched_group_names = set()
+    if search_active:
+        for ext in ext_data:
+            name = ext.name
+            if name == basis_name:
+                continue
+            if name_filter in name.lower():
+                matched_names.add(name)
+                parent_name = parent_group_by_name.get(name)
+                if parent_name:
+                    matched_group_names.add(parent_name)
 
     group_active = any(item.is_group_active for item in prop_o.ext_data if item.is_group)
     # グループの開閉フラグ
@@ -244,14 +272,15 @@ def refresh_filter_flag(context: Context, obj: Object):
         # is_group_close なら非表示。
         # group_active がTrueのときは is_group_active なグループだけ表示し、それ以外のヘッダーも含めて非表示。
         if ext.is_group:
+            force_open = search_active and ext.name in matched_group_names
             if group_active:
-                if not ext.is_group_active:
+                if not ext.is_group_active and not force_open:
                     hide_names.add(ext.name)  # 非アクティブなグループヘッダーも隠す
                     current_hide = True
                 else:
-                    current_hide = ext.is_group_close
+                    current_hide = False if force_open else ext.is_group_close
             else:
-                current_hide = ext.is_group_close
+                current_hide = False if force_open else ext.is_group_close
         else:
             if current_hide:
                 hide_names.add(ext.name)
@@ -273,12 +302,12 @@ def refresh_filter_flag(context: Context, obj: Object):
 
         if filter_used:
             kb = key_blocks.get(name)
-            if kb.value == 0.0:
+            if kb.value == 0.0 and not ext.is_group:
                 ext.filter_flag = True
                 continue
 
         # 名前フィルター
-        if name_filter and (name_filter not in name.lower()):
+        if name_filter and (name_filter not in name.lower()) and (name not in matched_group_names):
             ext.filter_flag = True
             continue
 
@@ -371,6 +400,35 @@ def copy_ext_info(source_ext, target_ext):
     for tag in group_tags:
         new_tag = target_ext.tags.add()
         new_tag.name = tag.name
+
+
+def transfer_ext_data(source_ext, target_ext, target_key_blocks):
+    """Copy ext_data from source to target. source/target may be on different objects."""
+    if not source_ext or not target_ext:
+        return
+    # Tags
+    target_ext.tags.clear()
+    for tag in source_ext.tags:
+        new_tag = target_ext.tags.add()
+        new_tag.name = tag.name
+    # Composer
+    target_ext.composer_enabled = source_ext.composer_enabled
+    target_ext.composer_type = source_ext.composer_type
+    target_ext.composer_source_object = source_ext.composer_source_object
+    target_ext.composer_source_mask = source_ext.composer_source_mask
+    target_ext.composer_smoothing_radius = source_ext.composer_smoothing_radius
+    target_ext.composer_source.clear()
+    for source in source_ext.composer_source:
+        if source.name in target_key_blocks:
+            new_item = target_ext.composer_source.add()
+            new_item.name = source.name
+            new_item.value = source.value
+            new_item.mask = source.mask
+    # Protect delta
+    target_ext.protect_delta = source_ext.protect_delta
+    # Group (is_group is refreshed by refresh_group_data, but we can set it for the key)
+    target_ext.is_group = source_ext.is_group
+    target_ext.group_color = source_ext.group_color
 
 
 def clear_filter(context: Context, obj: Object, clear_filter_select=False):

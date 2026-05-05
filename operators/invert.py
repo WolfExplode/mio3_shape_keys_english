@@ -6,8 +6,8 @@ from ..utils.utils import is_local_obj, valid_shape_key
 
 class OBJECT_OT_mio3sk_invert(Mio3SKOperator):
     bl_idname = "mesh.mio3sk_invert"
-    bl_label = "シェイプを反転"
-    bl_description = "シェイプキーの移動量を反転します"
+    bl_label = "Invert shape"
+    bl_description = "Invert shape key delta"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod

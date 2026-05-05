@@ -1,44 +1,107 @@
+import time
 import bpy
 import numpy as np
 from bpy.types import Context, Object
+
+try:
+    from scipy.spatial import cKDTree
+    _HAS_SCIPY = True
+except ImportError:
+    _HAS_SCIPY = False
 from bpy.props import BoolProperty, FloatProperty, EnumProperty
+from bpy.app.translations import pgettext_rpt
 from mathutils import Vector, kdtree
 from mathutils.geometry import intersect_point_tri_2d
 from ..classes.operator import Mio3SKGlobalOperator
-from ..utils.ext_data import refresh_data
+from ..globals import DEBUG
+from ..utils.ext_data import refresh_data, transfer_ext_data, add_ext_data
+
+
+def _transfer_native_properties(source_kb, target_kb, target_obj):
+    """Copy Blender shape key properties: mute, interpolation, slider range, lock_shape, vertex_group."""
+    target_kb.mute = source_kb.mute
+    target_kb.interpolation = source_kb.interpolation
+    target_kb.slider_min = source_kb.slider_min
+    target_kb.slider_max = source_kb.slider_max
+    target_kb.lock_shape = source_kb.lock_shape
+    if source_kb.vertex_group and source_kb.vertex_group in target_obj.vertex_groups:
+        target_kb.vertex_group = source_kb.vertex_group
+
+
+def _transfer_driver(source_kb, target_kb, source_obj, target_obj):
+    """Copy driver from source shape key to target. Remaps variable targets from source_obj to target_obj."""
+    src_key = source_obj.data.shape_keys
+    tgt_key = target_obj.data.shape_keys
+    if not src_key or not src_key.animation_data:
+        return False
+    data_path = f'key_blocks["{source_kb.name}"].value'
+    src_fc = None
+    for fc in src_key.animation_data.drivers:
+        if fc.data_path == data_path:
+            src_fc = fc
+            break
+    if not src_fc:
+        return False
+    if target_kb.driver_remove("value"):
+        pass  # Removed existing
+    if not tgt_key.animation_data:
+        tgt_key.animation_data_create()
+    new_fc = tgt_key.animation_data.drivers.from_existing(src_driver=src_fc)
+    if target_kb.name != source_kb.name:
+        new_fc.data_path = f'key_blocks["{target_kb.name}"].value'
+    for var in new_fc.driver.variables:
+        for t in var.targets:
+            if t.id == source_obj:
+                t.id = target_obj
+    return True
 
 
 class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
     bl_idname = "object.mio3sk_shape_transfer"
-    bl_label = "シェイプキーとして形状を転送"
-    bl_description = "他のオブジェクトの形状やシェイプキーをアクティブオブジェクトに転送します"
+    bl_label = "Transfer shape as shape key"
+    bl_description = "Transfer shapes from other object to active object"
     bl_options = {"REGISTER", "UNDO"}
 
     method: EnumProperty(
-        items=[("MESH", "統合メッシュ形状", ""), ("KEY", "Active Shape Key", "")],
+        items=[("MESH", "Merge mesh shape", ""), ("KEY", "Active Shape Key", "")],
         options={"HIDDEN", "SKIP_SAVE"},
     )
     transfer: EnumProperty(
         items=[
-            ("STANDARD", "Standard", "同一頂点数の転送"),
-            ("SMART", "スマートマッピング", "頂点数が異なるメッシュの転送を補間します"),
+            ("STANDARD", "Standard", "Transfer with same vertex count"),
+            ("SMART", "Smart mapping", "Interpolate transfer for meshes with different vertex counts"),
         ],
     )
     mapping_mode: EnumProperty(
-        name="マッピング方法",
+        name="Mapping method",
         items=[
-            ("POSITION", "Basisの位置", "Basisの位置でマッピング（通常はこれ）"),
-            ("UV", "UV", "UVの位置でマッピング"),
-            ("INDEX", "Index", "頂点番号でマッピング"),
+            ("POSITION", "Basis position", "Map by Basis position (default)"),
+            ("UV", "UV", "Map by UV position"),
+            ("INDEX", "Index", "Map by vertex index"),
         ],
     )
     target: EnumProperty(
         name="Target",
-        items=[("ACTIVE", "Active Shape Key", ""), ("ALL", "All", ""), ("SELECTED", "ソース側の選択したキー", "")],
+        items=[("ACTIVE", "Active Shape Key", ""), ("ALL", "All", ""), ("SELECTED", "Selected keys on source", "")],
     )
     threshold: FloatProperty(name="Threshold", default=0.004, min=0.0, max=1.0, precision=3)
     threshold_uv: FloatProperty(name="Threshold", default=0.0001, min=0.0, max=1.0, precision=4)
-    scale_normalize: BoolProperty(name="スケール補正", default=False, description="スケールが異なる場合に補正します")
+    scale_normalize: BoolProperty(name="Scale correction", default=False, description="Correct when scale differs")
+    transfer_properties: BoolProperty(
+        name="Transfer Properties",
+        description="Copy shape key properties (mute, slider range, vertex group, tags, composer rules) from source",
+        default=False,
+    )
+    transfer_drivers: BoolProperty(
+        name="Transfer Drivers",
+        description="Copy drivers from source shape keys. Variable targets pointing to source object are remapped to target object",
+        default=False,
+    )
+    override_existing: BoolProperty(
+        name="Override existing shape keys",
+        description="Replace data of existing shape keys with the same name. When disabled, skip keys that already exist on target",
+        default=True,
+    )
 
     def get_objects(self, context) -> tuple[Object, Object]:
         selected_objects = context.selected_objects
@@ -56,7 +119,7 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
     def invoke(self, context: Context, event):
         source_obj, target_obj = self.get_objects(context)
         if not source_obj or not target_obj:
-            self.report({"ERROR"}, "2つのオブジェクトを選択してください")
+            self.report({"ERROR"}, pgettext_rpt("Select two objects"))
             return {"CANCELLED"}
 
         source_len = len(source_obj.data.vertices)
@@ -83,29 +146,32 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
 
     def execute(self, context):
         self.start_time()
+        t0 = time.perf_counter()
 
         source_obj, target_obj = self.get_objects(context)
         if not source_obj or not target_obj:
             return {"CANCELLED"}
 
         if self.mapping_mode == "UV" and (not source_obj.data.uv_layers.active or not target_obj.data.uv_layers.active):
-            self.report({"ERROR"}, "両方のオブジェクトにUVマップが必要です")
+            self.report({"ERROR"}, pgettext_rpt("Both objects need UV map"))
             return {"CANCELLED"}
 
         if self.method == "KEY" and not source_obj.data.shape_keys:
-            self.method = "MESH"
+            self.report({"ERROR"}, pgettext_rpt("Source object has no shape keys"))
+            return {"CANCELLED"}
 
         source_len = len(source_obj.data.vertices)
         target_len = len(target_obj.data.vertices)
 
         if self.transfer == "STANDARD":
             if source_len != target_len:
-                self.report({"ERROR"}, "頂点数が異なるメッシュはスマートマッピングを使用してください")
+                self.report({"ERROR"}, pgettext_rpt("Use smart mapping for meshes with different vertex counts"))
                 return {"CANCELLED"}
-            self.standard_prosess(context)
-            refresh_data(context, target_obj, check=True, group=True)
-            self.print_time()
-            return {"FINISHED"}
+            if self.target == "ACTIVE":
+                self.standard_prosess(context)
+                refresh_data(context, target_obj, check=True, group=True)
+                self.print_time()
+                return {"FINISHED"}
 
         if not target_obj.data.shape_keys:
             target_obj.shape_key_add(name="Basis", from_mix=False)
@@ -143,23 +209,57 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             where=source_size > 1e-6,
         )
 
+        if DEBUG:
+            print("[transfer] setup + basis: {:.3f}s".format(time.perf_counter() - t0))
+        t_map = time.perf_counter()
+
         if self.mapping_mode == "INDEX":
             direct_map, interp_map = self.mapping_by_index(source_obj, target_obj)
         elif self.mapping_mode == "UV":
             direct_map, interp_map = self.mapping_by_uv(source_obj, target_obj, target_len)
         else:
+            if DEBUG:
+                print("[transfer] mapping backend: scipy cKDTree" if _HAS_SCIPY else "[transfer] mapping backend: mathutils KDTree")
             direct_map, interp_map = self.mapping_by_position(
                 source_len, target_len, source_basis_co, target_basis_co, source_scale, target_scale
             )
 
-        if direct_map:
-            direct_t_idx = np.fromiter(direct_map.keys(), dtype=np.int32, count=len(direct_map))
-            direct_s_idx = np.fromiter(direct_map.values(), dtype=np.int32, count=len(direct_map))
-        else:
-            direct_t_idx = np.empty(0, dtype=np.int32)
-            direct_s_idx = np.empty(0, dtype=np.int32)
+        interp_map_op = {}
+        for target_idx, mapping_info in interp_map.items():
+            source_indices = [s_idx for s_idx, _w in mapping_info]
+            weights = np.asarray([_w for _s, _w in mapping_info], dtype=np.float32)
+            total_weight = float(weights.sum())
+            if total_weight > 0.0:
+                weights /= total_weight
+                interp_map_op[target_idx] = (np.asarray(source_indices, dtype=np.int32), weights)
 
-        interp_arrays = self.build_interp_arrays(interp_map)
+        if DEBUG:
+            t_after_map = time.perf_counter()
+            t_after_interp_op = time.perf_counter()
+            mapping_time = t_after_map - t_map
+            interp_op_time = t_after_interp_op - t_after_map
+            print("[transfer] mapping: {:.3f}s (direct={}, interp={}) interp_map_op: {:.3f}s".format(
+                mapping_time, len(direct_map), len(interp_map_op), interp_op_time
+            ))
+
+        max_neighbors = 8
+        interp_data = None
+        if interp_map_op:
+            if DEBUG:
+                t_mat = time.perf_counter()
+            t_indices = np.fromiter(interp_map_op.keys(), dtype=np.int32)
+            n_interp = len(t_indices)
+            src_matrix = np.zeros((n_interp, max_neighbors), dtype=np.int32)
+            w_matrix = np.zeros((n_interp, max_neighbors), dtype=np.float32)
+            for i, (source_indices, weights) in enumerate(interp_map_op.values()):
+                k = min(len(source_indices), max_neighbors)
+                src_matrix[i, :k] = source_indices[:k]
+                w_matrix[i, :k] = weights[:k]
+            interp_data = (t_indices, src_matrix, w_matrix)
+            if DEBUG:
+                print("[transfer] interp_matrix precompute: {:.3f}s".format(time.perf_counter() - t_mat))
+
+        t_keys = time.perf_counter()
 
         if self.target == "ACTIVE" or self.method == "MESH":
             target_keys = [source_obj.active_shape_key]
@@ -169,84 +269,171 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             selected_names = {ext.name for ext in source_obj.mio3sk.ext_data if ext.select}
             target_keys = [kb for kb in source_obj.data.shape_keys.key_blocks[1:] if kb.name in selected_names]
 
+        source_shape_co_flat = np.empty(source_len * 3, dtype=np.float32)
+        source_diff = np.empty((source_len, 3), dtype=np.float32)
+
+        key_timings = None
+        if DEBUG:
+            key_timings = {
+                "foreach_get": 0.0,
+                "diff": 0.0,
+                "transfer_direct": 0.0,
+                "transfer_matrix": 0.0,
+                "transfer_neighbor": 0.0,
+                "transfer_scale": 0.0,
+                "foreach_set": 0.0,
+            }
+
+        last_processed_key = None
+        processed_key_names = set()
         for kb in target_keys:
             if self.method == "MESH":
                 source_shape_name = source_shape.name
-                new_key = target_obj.shape_key_add(name=source_obj.name, from_mix=False)
+                key_name = source_obj.name
             else:
                 source_shape_name = kb.name
-                new_key = target_obj.shape_key_add(name=kb.name, from_mix=False)
+                key_name = kb.name
+
+            target_key_blocks = target_obj.data.shape_keys.key_blocks
+            existing_key = target_key_blocks.get(key_name)
+            if existing_key is not None and not self.override_existing:
+                continue
+            if existing_key is not None:
+                new_key = existing_key
+            else:
+                new_key = target_obj.shape_key_add(name=key_name, from_mix=False)
 
             source_shape = source_obj.data.shape_keys.key_blocks.get(source_shape_name)
-            source_shape_co_flat = np.empty(source_len * 3, dtype=np.float32)
+            source_shape_co_flat = np.zeros(source_len * 3, dtype=np.float32)
+            if DEBUG:
+                t = time.perf_counter()
             source_shape.data.foreach_get("co", source_shape_co_flat)
+            if DEBUG:
+                key_timings["foreach_get"] += time.perf_counter() - t
+
+            if DEBUG:
+                t = time.perf_counter()
+            np.subtract(source_shape_co_flat.reshape(-1, 3), source_basis_co, out=source_diff)
+            if DEBUG:
+                key_timings["diff"] += time.perf_counter() - t
+
             source_shape_co = source_shape_co_flat.reshape(-1, 3)
-            source_diff = (source_shape_co_flat - source_basis_co_flat).reshape(-1, 3)
 
             try:
                 new_key_co = self.transfer_shape(
-                    direct_t_idx,
-                    direct_s_idx,
-                    interp_arrays,
+                    direct_map,
+                    interp_map_op,
                     source_shape_co,
                     target_basis_co,
                     source_diff,
                     self.method == "KEY",
                     scale_factors,
                     self.scale_normalize or self.method == "MESH",
+                    key_timings,
                 )
+
+                if DEBUG:
+                    t = time.perf_counter()
                 new_key.data.foreach_set("co", new_key_co.ravel())
+                if DEBUG:
+                    key_timings["foreach_set"] += time.perf_counter() - t
+
                 new_key.value = 0.0
+
+                if self.transfer_properties and source_shape:
+                    _transfer_native_properties(source_shape, new_key, target_obj)
+                if self.transfer_drivers and source_shape and self.method == "KEY":
+                    _transfer_driver(source_shape, new_key, source_obj, target_obj)
+                last_processed_key = new_key
+                processed_key_names.add(key_name)
             except Exception as e:
                 self.report({"ERROR"}, str(e))
+
+        if DEBUG:
+            key_time = time.perf_counter() - t_keys
+            n_keys = len(target_keys)
+            avg = key_time / n_keys if n_keys else 0
+            print("[transfer] key loop ({} keys): {:.3f}s ({:.3f}s/key avg)".format(n_keys, key_time, avg))
+            if key_timings:
+                kt = key_timings
+                print("[transfer] key loop breakdown: foreach_get={:.3f}s diff={:.3f}s transfer(direct={:.3f}s matrix={:.3f}s neighbor={:.3f}s scale={:.3f}s) foreach_set={:.3f}s".format(
+                    kt["foreach_get"], kt["diff"],
+                    kt["transfer_direct"], kt["transfer_matrix"], kt["transfer_neighbor"], kt["transfer_scale"],
+                    kt["foreach_set"],
+                ))
+        t_refresh = time.perf_counter()
 
         if self.method == "MESH":
             source_obj.shape_key_remove(source_shape)
             source_obj.active_shape_key_index = source_active_shape_key_index
 
         if self.target == "ACTIVE":
-            self.report({"INFO"}, "{}個の頂点を転送、{}個の頂点を補間".format(len(direct_map), len(interp_map)))
+            self.report({"INFO"}, pgettext_rpt("{} vertices transferred, {} interpolated").format(len(direct_map), len(interp_map)))
 
-        target_obj.active_shape_key_index = len(target_obj.data.shape_keys.key_blocks) - 1
+        if last_processed_key is not None:
+            target_obj.active_shape_key_index = target_obj.data.shape_keys.key_blocks.find(last_processed_key.name)
 
         refresh_data(context, target_obj, check=True, group=True)
+
+        if DEBUG:
+            print("[transfer] refresh_data: {:.3f}s".format(time.perf_counter() - t_refresh))
+        t_ext = time.perf_counter()
+
+        if self.transfer_properties and self.method == "KEY":
+            target_key_blocks = target_obj.data.shape_keys.key_blocks
+            source_prop = source_obj.mio3sk
+            target_prop = target_obj.mio3sk
+            for kb in target_keys:
+                if kb.name not in processed_key_names:
+                    continue
+                source_ext = source_prop.ext_data.get(kb.name)
+                target_ext = target_prop.ext_data.get(kb.name)
+                transfer_ext_data(source_ext, target_ext, target_key_blocks)
+            refresh_data(context, target_obj, group=True, composer=True)
+        if DEBUG:
+            print("[transfer] transfer_properties: {:.3f}s".format(time.perf_counter() - t_ext))
+            print("[transfer] TOTAL: {:.3f}s".format(time.perf_counter() - t0))
         self.print_time()
         return {"FINISHED"}
 
     @staticmethod
     def transfer_shape(
-        direct_t_idx,
-        direct_s_idx,
-        interp_arrays,
+        direct_map,
+        interp_map_op,
         source_shape_co,
         target_basis_co,
         source_diff,
         is_key_method,
         scale_factors,
         scale_normalize,
+        key_timings=None,
     ):
         new_key_co = target_basis_co.copy()
+        timings = key_timings
 
-        if direct_t_idx.size:
+        if direct_map:
+            t_idx = np.fromiter(direct_map.keys(), dtype=np.int32)
+            s_idx = np.fromiter(direct_map.values(), dtype=np.int32)
             if is_key_method:
-                diff = source_diff[direct_s_idx]
+                diff = source_diff[s_idx]
                 if scale_normalize:
                     diff = diff * scale_factors
-                new_key_co[direct_t_idx] = target_basis_co[direct_t_idx] + diff
+                new_key_co[t_idx] = target_basis_co[t_idx] + diff
             else:
-                new_key_co[direct_t_idx] = source_shape_co[direct_s_idx]
+                new_key_co[t_idx] = source_shape_co[s_idx]
 
-        if interp_arrays is not None:
-            interp_t_idx, interp_s_idx, interp_w = interp_arrays
+        for t_idx, (source_indices, weights) in interp_map_op.items():
             if is_key_method:
-                gathered = source_diff[interp_s_idx]
                 if scale_normalize:
-                    gathered = gathered * scale_factors
-                dx_dy_dz = (gathered * interp_w[:, :, None]).sum(axis=1)
-                new_key_co[interp_t_idx] = target_basis_co[interp_t_idx] + dx_dy_dz
+                    dx_dy_dz = (source_diff[source_indices] * scale_factors * weights[:, None]).sum(axis=0)
+                else:
+                    dx_dy_dz = (source_diff[source_indices] * weights[:, None]).sum(axis=0)
+
+                disp_length = float(np.linalg.norm(dx_dy_dz))
+                scale_factor = min(1.0, 1.0 / (disp_length / 2.0 + 0.5))
+                new_key_co[t_idx] = target_basis_co[t_idx] + (dx_dy_dz * scale_factor)
             else:
-                gathered = source_shape_co[interp_s_idx]
-                new_key_co[interp_t_idx] = (gathered * interp_w[:, :, None]).sum(axis=1)
+                new_key_co[t_idx] = (source_shape_co[source_indices] * weights[:, None]).sum(axis=0)
 
         return new_key_co
 
@@ -307,11 +494,60 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
             source_co = (source_basis_co - source_center) / source_scale
             target_co = (target_basis_co - target_center) / target_scale
         else:
-            source_co = source_basis_co
-            target_co = target_basis_co
+            source_co = source_basis_co.astype(np.float64)
+            target_co = target_basis_co.astype(np.float64)
 
-        kd = kdtree.KDTree(source_len)
-        for i in range(source_len):
+        if _HAS_SCIPY:
+            direct_map, interp_map = self._mapping_by_position_scipy(
+                source_co, target_co, target_len, threshold
+            )
+        else:
+            direct_map, interp_map = self._mapping_by_position_mathutils(
+                source_co, target_co, target_len, threshold
+            )
+        return direct_map, interp_map
+
+    def _mapping_by_position_scipy(self, source_co, target_co, target_len, threshold):
+        tree = cKDTree(source_co)
+        dists_1, indices_1 = tree.query(target_co, k=1)
+        dists_1 = dists_1.ravel()
+        indices_1 = indices_1.ravel()
+
+        direct_mask = dists_1 <= threshold
+        direct_map = {i: int(indices_1[i]) for i in range(target_len) if direct_mask[i]}
+        unmapped = np.where(~direct_mask)[0]
+
+        if len(unmapped) == 0:
+            return direct_map, {}
+
+        dists_8, indices_8 = tree.query(target_co[unmapped], k=8)
+        interp_map = {}
+        for ui, target_idx in enumerate(unmapped):
+            idx = indices_8[ui]
+            d = dists_8[ui]
+            valid = d < np.inf
+            if not np.any(valid):
+                continue
+            idx = idx[valid]
+            d = d[valid].astype(np.float32)
+            max_d = float(d.max()) + 1e-6
+            norm_d = d / max_d
+            weights = np.exp(-4.0 * norm_d * norm_d)
+            threshold_w = float(weights.max()) * 0.1
+            mask = weights > threshold_w
+            if not np.any(mask):
+                continue
+            weights = weights[mask]
+            idx = idx[mask]
+            weights /= float(weights.sum())
+            interp_map[int(target_idx)] = list(zip(idx.tolist(), weights.tolist()))
+        return direct_map, interp_map
+
+    def _mapping_by_position_mathutils(self, source_co, target_co, target_len, threshold):
+        source_co = np.asarray(source_co, dtype=np.float64)
+        target_co = np.asarray(target_co, dtype=np.float64)
+        kd = kdtree.KDTree(len(source_co))
+        for i in range(len(source_co)):
             kd.insert(Vector(source_co[i]), i)
         kd.balance()
 
@@ -326,7 +562,6 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
                 unmapped_indices.append(i)
 
         interp_map = {}
-
         for i in unmapped_indices:
             query_pos = Vector(target_co[i])
             found_points = kd.find_n(query_pos, 8)
@@ -471,9 +706,11 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
                 result = bpy.ops.object.shape_key_transfer()
 
             if result != {"FINISHED"}:
-                raise RuntimeError("頂点数が異なるメッシュはスマートマッピングを使用してください")
+                self.report({"ERROR"}, pgettext_rpt("Standard mode error: {}").format(
+                    pgettext_rpt("Use smart mapping for meshes with different vertex counts")))
+                return {"FINISHED"}
         except Exception as e:
-            self.report({"ERROR"}, "「標準」モードのエラー: {}".format(str(e)))
+            self.report({"ERROR"}, pgettext_rpt("Standard mode error: {}").format(str(e)))
             return {"FINISHED"}
 
     def draw(self, context):
@@ -483,20 +720,151 @@ class OBJECT_OT_mio3sk_shape_transfer(Mio3SKGlobalOperator):
         layout.use_property_split = True
         if self.method == "KEY":
             layout.prop(self, "target")
-        col = layout.column()
-        if self.transfer != "SMART":
-            col.enabled = False
-        col.prop(self, "mapping_mode", expand=True)
-        if self.mapping_mode == "UV":
-            layout.prop(self, "threshold_uv")
-        else:
-            layout.prop(self, "threshold")
+        if self.transfer == "SMART":
+            layout.prop(self, "mapping_mode", expand=True)
+            if self.mapping_mode == "UV":
+                layout.prop(self, "threshold_uv")
+            else:
+                layout.prop(self, "threshold")
         layout.prop(self, "scale_normalize")
+        layout.prop(self, "override_existing")
+        if self.method == "KEY":
+            layout.prop(self, "transfer_properties")
+            layout.prop(self, "transfer_drivers")
+
+
+class OBJECT_OT_mio3sk_join_mesh_shape(OBJECT_OT_mio3sk_shape_transfer):
+    bl_idname = "object.mio3sk_join_mesh_shape"
+    bl_label = "Transfer shape as shape key"
+
+    def invoke(self, context: Context, event):
+        self.method = "MESH"
+        return super().invoke(context, event)
+
+
+class OBJECT_OT_mio3sk_transfer_shape_key(OBJECT_OT_mio3sk_shape_transfer):
+    bl_idname = "object.mio3sk_transfer_shape_key"
+    bl_label = "Transfer Shape Key"
+
+    def invoke(self, context: Context, event):
+        self.method = "KEY"
+        return super().invoke(context, event)
+
+
+class OBJECT_OT_mio3sk_transfer_properties(OBJECT_OT_mio3sk_shape_transfer):
+    bl_idname = "object.mio3sk_transfer_properties"
+    bl_label = "Transfer Shape Key Properties"
+    bl_description = "Only if both objects share a shape key of the same name, and does not override the shape keys themselves"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def invoke(self, context: Context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        self.start_time()
+        source_obj, target_obj = self.get_objects(context)
+        if not source_obj or not target_obj:
+            self.report({"ERROR"}, pgettext_rpt("Select two objects"))
+            return {"CANCELLED"}
+
+        if not source_obj.data.shape_keys or not target_obj.data.shape_keys:
+            self.report({"ERROR"}, pgettext_rpt("Both objects need shape keys"))
+            return {"CANCELLED"}
+
+        source_keys = set(source_obj.data.shape_keys.key_blocks.keys())
+        target_keys = set(target_obj.data.shape_keys.key_blocks.keys())
+        common_names = source_keys & target_keys
+
+        if not common_names:
+            self.report({"WARNING"}, pgettext_rpt("No matching shape key names between objects"))
+            return {"CANCELLED"}
+
+        refresh_data(context, source_obj, check=True)
+        refresh_data(context, target_obj, check=True)
+
+        target_key_blocks = target_obj.data.shape_keys.key_blocks
+        source_key_blocks = source_obj.data.shape_keys.key_blocks
+        source_prop = source_obj.mio3sk
+        target_prop = target_obj.mio3sk
+
+        missing_target = {name for name in common_names if target_prop.ext_data.get(name) is None}
+        if missing_target:
+            add_ext_data(target_obj, missing_target)
+
+        count = 0
+        for name in common_names:
+            transferred = False
+            source_kb = source_key_blocks.get(name)
+            target_kb = target_key_blocks.get(name)
+            if source_kb and target_kb:
+                _transfer_native_properties(source_kb, target_kb, target_obj)
+                transferred = True
+
+            source_ext = source_prop.ext_data.get(name)
+            target_ext = target_prop.ext_data.get(name)
+            if source_ext and target_ext:
+                transfer_ext_data(source_ext, target_ext, target_key_blocks)
+                transferred = True
+
+            if transferred:
+                count += 1
+
+        refresh_data(context, target_obj, group=True, composer=True)
+        self.report({"INFO"}, pgettext_rpt("Transferred properties for {} shape keys").format(count))
+        self.print_time()
+        return {"FINISHED"}
+
+
+class OBJECT_OT_mio3sk_transfer_drivers(OBJECT_OT_mio3sk_shape_transfer):
+    bl_idname = "object.mio3sk_transfer_drivers"
+    bl_label = "Transfer Drivers"
+    bl_description = "Copy drivers from source to target for matching shape key names. Variable targets pointing to source object are remapped to target object"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def invoke(self, context: Context, event):
+        return self.execute(context)
+
+    def execute(self, context):
+        self.start_time()
+        source_obj, target_obj = self.get_objects(context)
+        if not source_obj or not target_obj:
+            self.report({"ERROR"}, pgettext_rpt("Select two objects"))
+            return {"CANCELLED"}
+
+        if not source_obj.data.shape_keys or not target_obj.data.shape_keys:
+            self.report({"ERROR"}, pgettext_rpt("Both objects need shape keys"))
+            return {"CANCELLED"}
+
+        common_names = set(source_obj.data.shape_keys.key_blocks.keys()) & set(target_obj.data.shape_keys.key_blocks.keys())
+        if not common_names:
+            self.report({"WARNING"}, pgettext_rpt("No matching shape key names between objects"))
+            return {"CANCELLED"}
+
+        source_key_blocks = source_obj.data.shape_keys.key_blocks
+        target_key_blocks = target_obj.data.shape_keys.key_blocks
+        count = 0
+        for name in common_names:
+            source_kb = source_key_blocks.get(name)
+            target_kb = target_key_blocks.get(name)
+            if source_kb and target_kb and _transfer_driver(source_kb, target_kb, source_obj, target_obj):
+                count += 1
+
+        self.report({"INFO"}, pgettext_rpt("Transferred drivers for {} shape keys").format(count))
+        self.print_time()
+        return {"FINISHED"}
 
 
 def register():
     bpy.utils.register_class(OBJECT_OT_mio3sk_shape_transfer)
+    bpy.utils.register_class(OBJECT_OT_mio3sk_join_mesh_shape)
+    bpy.utils.register_class(OBJECT_OT_mio3sk_transfer_shape_key)
+    bpy.utils.register_class(OBJECT_OT_mio3sk_transfer_properties)
+    bpy.utils.register_class(OBJECT_OT_mio3sk_transfer_drivers)
 
 
 def unregister():
+    bpy.utils.unregister_class(OBJECT_OT_mio3sk_transfer_drivers)
+    bpy.utils.unregister_class(OBJECT_OT_mio3sk_transfer_properties)
+    bpy.utils.unregister_class(OBJECT_OT_mio3sk_transfer_shape_key)
+    bpy.utils.unregister_class(OBJECT_OT_mio3sk_join_mesh_shape)
     bpy.utils.unregister_class(OBJECT_OT_mio3sk_shape_transfer)

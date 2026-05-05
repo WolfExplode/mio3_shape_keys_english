@@ -4,8 +4,8 @@ from ..classes.operator import Mio3SKOperator
 
 class OBJECT_OT_mio3sk_bake_attr(Mio3SKOperator):
     bl_idname = "object.mio3sk_bake_attr"
-    bl_label = "アクティブキーを属性にベイク"
-    bl_description = "アクティブキーの移動量をメッシュ属性にベイクします"
+    bl_label = "Bake active key to attributes"
+    bl_description = "Bake active key's delta to mesh attributes"
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):

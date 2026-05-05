@@ -64,7 +64,7 @@ class OBJECT_OT_mio3sk_move(Mio3SKOperator):
 
 class OBJECT_OT_mio3sk_move_below(Mio3SKOperator):
     bl_idname = "object.mio3sk_move_below"
-    bl_label = "アクティブキーの下に移動"
+    bl_label = "Move below active key"
     bl_description = "Move Shape Keys"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
 
@@ -103,7 +103,7 @@ class OBJECT_OT_mio3sk_move_below(Mio3SKOperator):
 
 class OBJECT_OT_mio3sk_move_group(Mio3SKOperator):
     bl_idname = "object.mio3sk_move_group"
-    bl_label = "グループの並び順を変更"
+    bl_label = "Change group order"
     bl_description = "Move Shape Keys"
     bl_options = {"REGISTER", "UNDO"}
 

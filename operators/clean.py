@@ -9,7 +9,7 @@ from ..utils.utils import is_local_obj, valid_shape_key
 class MESH_OT_mio3sk_clean(Mio3SKOperator):
     bl_idname = "mesh.mio3sk_clean"
     bl_label = "Clean Vertex"
-    bl_description = "一定以上動いていない頂点をリセットする"
+    bl_description = "Reset vertices that have not moved beyond threshold"
     bl_options = {"REGISTER", "UNDO"}
 
     selected_keys: BoolProperty(name="Selected All Keys", default=False, options={"SKIP_SAVE"})
@@ -77,8 +77,8 @@ class MESH_OT_mio3sk_clean(Mio3SKOperator):
 
 class OBJECT_OT_mio3sk_clean_selected(Mio3SKOperator):
     bl_idname = "object.mio3sk_clean_selected"
-    bl_label = "選択したキーをクリーン"
-    bl_description = "一定以上動いていない頂点をリセットする"
+    bl_label = "Clean selected keys"
+    bl_description = "Reset vertices that have not moved beyond threshold"
     bl_options = {"REGISTER", "UNDO"}
 
     mode: EnumProperty(

@@ -8,8 +8,10 @@ from ..utils.utils import is_local_obj, has_shape_key
 
 class MESH_OT_mio3sk_symmetrize(Mio3SKOperator):
     bl_idname = "mesh.mio3sk_symmetrize"
-    bl_label = "シェイプキーを対称化"
-    bl_description = "Basisに基づきシェイプキーを対称化"
+    bl_label = "Symmetrize shape keys"
+    bl_description = (
+        "Symmetrize selected verts"
+    )
     bl_options = {"REGISTER", "UNDO"}
 
     direction: EnumProperty(

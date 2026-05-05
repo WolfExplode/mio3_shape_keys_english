@@ -2,6 +2,7 @@ import bpy
 import bmesh
 from mathutils import Vector, kdtree
 from bpy.props import BoolProperty, FloatProperty
+from bpy.app.translations import pgettext_iface as tt_iface, pgettext_rpt
 from ..utils.utils import is_local_obj, valid_shape_key
 from ..classes.operator import Mio3SKOperator
 
@@ -9,12 +10,12 @@ from ..classes.operator import Mio3SKOperator
 class MESH_OT_mio3sk_select_moved(Mio3SKOperator):
     bl_idname = "mesh.mio3sk_select_moved"
     bl_label = "Select Moved by Shape Keys"
-    bl_description = "Basisから移動している頂点を選択します"
+    bl_description = "Select vertices moved by shape keys"
     bl_options = {"REGISTER", "UNDO"}
 
     threshold: FloatProperty(
         name="Threshold",
-        description="移動とみなす最小距離",
+        description="Minimum distance to consider as moved",
         default=0.0001,
         min=0.0,
         step=0.01,
@@ -82,8 +83,8 @@ class MESH_OT_mio3sk_select_moved(Mio3SKOperator):
 
 class MESH_OT_mio3sk_select_asymmetry(Mio3SKOperator):
     bl_idname = "mesh.mio3sk_select_asymmetry"
-    bl_label = "非対称の頂点を選択"
-    bl_description = "非対称の頂点を選択します"
+    bl_label = "Select Asymmetric Vertices"
+    bl_description = "Select vertices that are asymmetric for the active shape key"
     bl_options = {"REGISTER", "UNDO"}
 
     threshold: FloatProperty(
@@ -94,8 +95,8 @@ class MESH_OT_mio3sk_select_asymmetry(Mio3SKOperator):
         precision=4,
     )
     include_basis: BoolProperty(
-        name="Basisの非対称頂点を含める",
-        description="Basisの時点で非対称な頂点も選択します",
+        name="Include asymmetric vertices in Basis",
+        description="Include vertices asymmetric at Basis",
         default=False,
     )
 
@@ -108,13 +109,22 @@ class MESH_OT_mio3sk_select_asymmetry(Mio3SKOperator):
         self.start_time()
         obj = context.active_object
         active_key = obj.active_shape_key
+        basis_kb = obj.data.shape_keys.reference_key
         context.tool_settings.mesh_select_mode = (True, False, False)
 
         bm = bmesh.from_edit_mesh(obj.data)
         bm.verts.ensure_lookup_table()
 
-        basis_layer = bm.verts.layers.shape.get("Basis")
+        basis_layer = bm.verts.layers.shape.get(basis_kb.name)
         active_layer = bm.verts.layers.shape.get(active_key.name)
+        if basis_layer is None or active_layer is None:
+            self.report(
+                {"WARNING"},
+                pgettext_rpt(
+                    "Shape key layers missing in edit mesh; try toggling edit mode or updating shape keys"
+                ),
+            )
+            return {"CANCELLED"}
         threshold_squared = self.threshold * self.threshold
 
         basis_co = []
@@ -178,7 +188,10 @@ classes = [MESH_OT_mio3sk_select_moved, MESH_OT_mio3sk_select_asymmetry]
 
 def add_custom_menu_item(self, context):
     self.layout.separator()
-    self.layout.operator("mesh.mio3sk_select_moved", text="Moved by Shape Keys")
+    self.layout.operator(
+        "mesh.mio3sk_select_moved",
+        text=tt_iface("Moved by Shape Keys"),
+    )
 
 
 def register():

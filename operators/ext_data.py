@@ -49,8 +49,8 @@ def cleanup_ext_data(context, obj):
 
 class OBJECT_OT_mio3sk_refresh_ext_data(Mio3SKGlobalOperator):
     bl_idname = "object.mio3sk_refresh_ext_data"
-    bl_label = "拡張プロパティの更新"
-    bl_description = "すべてのオブジェクトの拡張プロパティを更新します"
+    bl_label = "Refresh extended properties"
+    bl_description = "Update extended properties for all objects"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -97,8 +97,8 @@ class OBJECT_OT_mio3sk_refresh_ext_data(Mio3SKGlobalOperator):
 
 class OBJECT_OT_mio3sk_clear_ext_data(Mio3SKGlobalOperator):
     bl_idname = "object.mio3sk_clear_ext_data"
-    bl_label = "拡張プロパティのクリア"
-    bl_description = "アクティブオブジェクトの拡張プロパティをクリアします"
+    bl_label = "Clear extended properties"
+    bl_description = "Clear active object's extended properties"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -110,9 +110,9 @@ class OBJECT_OT_mio3sk_clear_ext_data(Mio3SKGlobalOperator):
         layout = self.layout
         box = layout.box()
         col = box.column(align=True)
-        col.label(text="アクティブオブジェクトの拡張プロパティを削除します")
-        col.label(text="シェイプ同期のルール・タグ・プリセット")
-        col.label(text="などの設定はすべて削除されます")
+        col.label(text="Delete extended properties of active object")
+        col.label(text="Shape sync rules, tags, presets")
+        col.label(text="All settings will be removed")
 
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
@@ -142,7 +142,7 @@ class OBJECT_OT_mio3sk_clear_ext_data(Mio3SKGlobalOperator):
 class OBJECT_OT_mio3sk_clear_filter(Mio3SKOperator):
     bl_idname = "object.mio3sk_clear_filter"
     bl_label = "Show All"
-    bl_description = "フィルターの条件をリセットしてすべてのシェイプキーを表示します"
+    bl_description = "Reset filter and show all shape keys"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
 
     def execute(self, context):
@@ -265,7 +265,7 @@ class OBJECT_OT_mio3sk_props_conv(Mio3SKGlobalOperator):
     bl_description = "Conv"
     bl_options = {"REGISTER", "UNDO_GROUPED", "INTERNAL"}
 
-    json: StringProperty(name="古いJson")
+    json: StringProperty(name="Legacy Json")
 
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self, width=300)

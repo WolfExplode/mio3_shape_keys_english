@@ -3,6 +3,7 @@ import bmesh
 import numpy as np
 from mathutils import kdtree
 from bpy.props import BoolProperty, FloatProperty, StringProperty
+from bpy.app.translations import pgettext_rpt
 from ..classes.operator import Mio3SKOperator
 from ..utils.utils import is_local_obj, has_shape_key
 from ..utils.ext_data import refresh_filter_flag, refresh_ui_select, clear_filter
@@ -29,8 +30,8 @@ class MIO3SKSelectKeysBase(Mio3SKOperator):
 
 class OBJECT_OT_mio3sk_select_all_unused(MIO3SKSelectKeysBase):
     bl_idname = "object.mio3sk_select_all_unused"
-    bl_label = "未使用のキーを選択"
-    bl_description = "未使用のキーを選択します"
+    bl_label = "Select unused keys"
+    bl_description = "Select keys that are unused"
     bl_options = {"REGISTER", "UNDO"}
 
     threshold: FloatProperty(
@@ -76,13 +77,13 @@ class OBJECT_OT_mio3sk_select_all_unused(MIO3SKSelectKeysBase):
 
 class OBJECT_OT_mio3sk_select_all_by_verts(MIO3SKSelectKeysBase):
     bl_idname = "object.mio3sk_select_all_by_verts"
-    bl_label = "選択した頂点を使用するキーを選択"
-    bl_description = "選択した頂点が移動しているキーを選択します"
+    bl_label = "Select keys using selected vertices"
+    bl_description = "Select keys that move selected vertices"
     bl_options = {"REGISTER", "UNDO"}
 
     threshold: FloatProperty(
         name="Threshold",
-        description="移動とみなす最小距離 (cm)",
+        description="Minimum distance to consider as moved (cm)",
         default=0.0001,
         min=0.0,
         step=0.01,
@@ -148,8 +149,8 @@ class OBJECT_OT_mio3sk_select_all_by_verts(MIO3SKSelectKeysBase):
 
 class OBJECT_OT_mio3sk_select_all_asymmetry(MIO3SKSelectKeysBase):
     bl_idname = "object.mio3sk_select_all_asymmetry"
-    bl_label = "左右非対称のキーを選択"
-    bl_description = "非対称変形のシェイプキーを選択します"
+    bl_label = "Select asymmetric L/R keys"
+    bl_description = "Select asymmetric shape keys"
     bl_options = {"REGISTER", "UNDO"}
 
     threshold: FloatProperty(
@@ -162,10 +163,10 @@ class OBJECT_OT_mio3sk_select_all_asymmetry(MIO3SKSelectKeysBase):
     )
 
     exclude_asymmetry_names: BoolProperty(
-        name="非対称の名前のキーを除外", description="非対称前提の要素として除外する", default=True
+        name="Exclude asymmetric key names", description="Exclude elements assumed asymmetric", default=True
     )
     exclude_hide: BoolProperty(
-        name="非表示の頂点を除外", description="非対称前提の頂点などを非表示にしてチェックする", default=False
+        name="Exclude hidden vertices", description="Check hidden vertices for asymmetry", default=False
     )
     exclude_suffix = [
         "_L", "_R", "_l", "_r", ".L", ".R", ".l", ".r", "-L", "-R", "-l", "-r",
@@ -259,7 +260,7 @@ class OBJECT_OT_mio3sk_select_all_asymmetry(MIO3SKSelectKeysBase):
 class OBJECT_OT_mio3sk_select_all(MIO3SKSelectKeysBase):
     bl_idname = "object.mio3sk_select_all"
     bl_label = "Select All"
-    bl_description = "シェイプキーをすべて選択します"
+    bl_description = "Select all shape keys"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
     all: BoolProperty(name="All", default=False, options={"SKIP_SAVE"})
 
@@ -283,7 +284,7 @@ class OBJECT_OT_mio3sk_select_all(MIO3SKSelectKeysBase):
 class OBJECT_OT_mio3sk_deselect_all(MIO3SKSelectKeysBase):
     bl_idname = "object.mio3sk_deselect_all"
     bl_label = "Deselect All"
-    bl_description = "シェイプキーの選択をすべて解除します"
+    bl_description = "Deselect all shape keys"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
 
     def execute(self, context):
@@ -296,8 +297,8 @@ class OBJECT_OT_mio3sk_deselect_all(MIO3SKSelectKeysBase):
 
 class OBJECT_OT_mio3sk_select_group_toggle(MIO3SKSelectKeysBase):
     bl_idname = "object.mio3sk_select_group_toggle"
-    bl_label = "グループをすべて選択または解除"
-    bl_description = "グループのシェイプキーをすべて選択または解除します"
+    bl_label = "Select or deselect all in group"
+    bl_description = "Select or deselect all group shape keys"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
 
     key: StringProperty(name="Key")
@@ -333,8 +334,8 @@ class OBJECT_OT_mio3sk_select_group_toggle(MIO3SKSelectKeysBase):
 
 class OBJECT_OT_mio3sk_select_all_error(MIO3SKSelectKeysBase):
     bl_idname = "object.mio3sk_select_all_error"
-    bl_label = "エラー要因になるキーを選択"
-    bl_description = "モディファイア適用時にエラー要因になるBasisと頂点数が異なるシェイプキーを選択します"
+    bl_label = "Select error keys"
+    bl_description = "Select shape keys that cause errors when applying modifier (Basis vertex count differs)"
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
@@ -371,8 +372,8 @@ class OBJECT_OT_mio3sk_select_all_error(MIO3SKSelectKeysBase):
 
 class OBJECT_OT_mio3sk_select_invert(MIO3SKSelectKeysBase):
     bl_idname = "object.mio3sk_select_invert"
-    bl_label = "選択を反転"
-    bl_description = "選択されているシェイプキーの選択を反転します"
+    bl_label = "Invert selection"
+    bl_description = "Invert shape key selection"
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):

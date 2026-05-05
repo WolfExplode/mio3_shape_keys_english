@@ -1,4 +1,5 @@
 import bpy
+from bpy.app.translations import pgettext_iface
 from ..classes.operator import Mio3SKPanel
 from ..utils.utils import has_shape_key
 
@@ -16,8 +17,9 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
     def draw_header(self, context):
         active_shape_key_index = context.object.active_shape_key_index
         active_shape_key = context.object.active_shape_key
+        key_name = active_shape_key.name if active_shape_key else pgettext_iface("(none)")
         row = self.layout.row()
-        row.label(text="プロパティ [{}] {}".format(active_shape_key_index, active_shape_key.name))
+        row.label(text=pgettext_iface("Properties [{}] {}").format(active_shape_key_index, key_name))
 
     def draw(self, context):
 
@@ -61,13 +63,13 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
                 if not ext.composer_enabled:
                     sub = box_composer.row(align=True)
                     sub.scale_y = 1.1
-                    sub.operator("object.mio3sk_composer_create", text="空のルールを作成").auto = False
-                    sub.operator("object.mio3sk_composer_create", text="現在の値から作成").auto = True
+                    sub.operator("object.mio3sk_composer_create", text="Create empty rule").auto = False
+                    sub.operator("object.mio3sk_composer_create", text="Create from current value").auto = True
                 else:
                     if ext.composer_type == "DEFORM":
                         self.layout_deform(box_composer, obj, ext)
                         sub = box_composer.row(align=True)
-                        sub.operator("object.mio3sk_composer_apply", text="このキーを適用", icon="TRIA_RIGHT").dependence = True
+                        sub.operator("object.mio3sk_composer_apply", text="Apply this key", icon="TRIA_RIGHT").dependence = True
                     else:
                         self.layout_copy(box_composer, obj, ext)
                         # sub = box_composer.row(align=True)
@@ -77,7 +79,7 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
                 child_exts = [e for e in prop_o.ext_data if ext.name in e.composer_source]
                 if child_exts:
                     childs_col = box_composer.column()
-                    childs_col.label(text="{} ({})".format("子シェイプキー", len(child_exts)), icon="ANIM")
+                    childs_col.label(text=pgettext_iface("Child shape keys ({})").format(len(child_exts)), icon="ANIM")
 
                     for child in child_exts:
                         childs_wow = childs_col.row()
@@ -129,8 +131,8 @@ class MIO3SK_PT_sub_properties(Mio3SKPanel):
         if prop_s.use_group_prefix == "NONE":
             sub.prop(ext, "is_group", text="Group")
         if ext.is_group:
-            sub.prop(ext, "group_color", text="グループカラー")
-            sub.prop(ext, "is_group_hidden", text="グループ一覧で非表示")
+            sub.prop(ext, "group_color", text="Group color")
+            sub.prop(ext, "is_group_hidden", text="Hide in group list")
 
         # if pref.advanced:
         #     col.prop(ext, "name_ja")

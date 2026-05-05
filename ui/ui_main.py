@@ -115,7 +115,7 @@ class MIO3SK_PT_main(Mio3SKPanel):
             layout.separator(factor=0.1)
             sub = layout.row(align=True)
             sub.operator("object.mio3sk_composer_apply", icon_value=icons.linked).dependence = True
-            sub.operator("object.mio3sk_composer_apply", icon_value=icons.linked, text="すべてを同期").all = True
+            sub.operator("object.mio3sk_composer_apply", icon_value=icons.linked, text="Sync All").all = True
             sub.prop(prop_s, "composer_auto", text="", icon_value=icons.refresh)
 
         layout.separator(factor=0.1)
@@ -367,6 +367,8 @@ class MIO3SK_PT_main(Mio3SKPanel):
             row.use_property_decorate = False
             row.use_property_split = True
             row.prop(prop_o, "preset_wrap")
+            row.operator("object.mio3sk_export_presets", icon="EXPORT", text="")
+            row.operator("object.mio3sk_import_presets", icon="IMPORT", text="")
         elif prop_o.preset_list:
             preset_list = prop_o.preset_list
             preset_list = [preset for preset in preset_list if not preset.hide]

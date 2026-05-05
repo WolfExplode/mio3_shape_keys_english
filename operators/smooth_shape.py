@@ -9,8 +9,8 @@ from ..utils.utils import valid_shape_key
 
 class MESH_OT_mio3sk_smooth_shape(Mio3SKOperator):
     bl_idname = "mesh.mio3sk_smooth_shape"
-    bl_label = "シェイプキーをスムーズ"
-    bl_description = "シェイプキーを部分的にスムーズします（最終的にBasisの形状に近づきます）"
+    bl_label = "Smooth shape keys"
+    bl_description = "Partially smooth shape key (converges toward Basis)"
     bl_options = {"REGISTER", "UNDO"}
 
     mode: EnumProperty(
@@ -23,7 +23,7 @@ class MESH_OT_mio3sk_smooth_shape(Mio3SKOperator):
         default="1",
         items=[("1", "1", ""), ("3", "3", ""), ("5", "5", ""), ("10", "10", ""), ("20", "20", "")],
     )
-    anti_bump: FloatProperty(name="凸凹補正", default=0.5, min=0, max=1, step=5)
+    anti_bump: FloatProperty(name="Bump correction", default=0.5, min=0, max=1, step=5)
 
     def execute(self, context):
         self.start_time()

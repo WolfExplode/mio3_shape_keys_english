@@ -1,4 +1,5 @@
 import bpy
+from bpy.app.translations import pgettext_iface as tt_iface
 from ..classes.operator import Mio3SKSidePanel
 from ..utils.utils import is_obj, has_shape_key
 from ..icons import icons
@@ -18,7 +19,7 @@ class MIO3SK_PT_side_main(Mio3SKSidePanel):
         layout = self.layout
         col = layout.column(align=True)
         row = col.row(align=True)
-        row.operator("mesh.mio3sk_reset", text="Reset", icon_value=icons.eraser)
+        row.operator("mesh.mio3sk_reset", text=tt_iface("Reset to Basis"), icon_value=icons.eraser)
         row.operator("mesh.mio3sk_smooth_shape", text="Smooth", icon_value=icons.smooth)
         row.menu("MIO3SK_MT_side", text="", icon="DOWNARROW_HLT")
         col.separator()
@@ -56,7 +57,7 @@ class MIO3SK_PT_sub_blend(Mio3SKSidePanel):
 
 
 class MIO3SK_PT_sub_delta_repair(Mio3SKSidePanel):
-    bl_label = "表情修復"
+    bl_label = "Expression repair"
     bl_parent_id = "MIO3SK_PT_side_main"
     bl_options = {"DEFAULT_CLOSED"}
 
@@ -68,8 +69,8 @@ class MIO3SK_PT_sub_delta_repair(Mio3SKSidePanel):
         prop_w = context.window_manager.mio3sk
         layout = self.layout
         col = layout.column(align=True)
-        col.label(text="Basisに適用を使用後に", icon="INFO")
-        col.label(text="崩れた表情を修復します", icon="BLANK1")
+        col.label(text="After using Apply to Basis", icon="INFO")
+        col.label(text="Repair broken expressions", icon="BLANK1")
         row = col.row(align=True)
         shape_keys = context.active_object.data.shape_keys
         row.prop_search(prop_w, "apply_to_basis", shape_keys, "key_blocks", text="")

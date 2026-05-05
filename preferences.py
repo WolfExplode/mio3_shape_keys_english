@@ -30,12 +30,12 @@ class MIO3SK_Preferences(AddonPreferences):
 
     use_sync_active_shapekey: BoolProperty(name="Active Shape Key", default=True, options=set())
     use_rename_mirror: BoolProperty(
-        name="リネーム時にミラー側の名前も変更",
+        name="Also rename mirror side on rename",
         description='e.g., "Eye_L" with "Eye_R"',
         default=True,
         options=set(),
     )
-    use_auto_x_mirror: BoolProperty(name="Xミラー編集の自動設定 (WIP)", default=True, options=set())
+    use_auto_x_mirror: BoolProperty(name="X mirror edit auto setup (WIP)", default=True, options=set())
     group_action: EnumProperty(
         name="Group Action",
         items=[("FILTER", "Filter", ""), ("JUMP", "Jump", "")],
@@ -73,7 +73,7 @@ class MIO3SK_Preferences(AddonPreferences):
 
         split = col.split(factor=0.35)
         split.alignment = "RIGHT"
-        split.label(text="グループアクション")
+        split.label(text="Group Action")
         split.prop(prefs, "group_action", text="")
 
         split = col.split(factor=0.35)

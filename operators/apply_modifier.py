@@ -2,6 +2,7 @@ import bpy
 import time
 import numpy as np
 from bpy.types import Context, Object, PropertyGroup
+from bpy.app.translations import pgettext_rpt
 from bpy.props import BoolProperty, CollectionProperty
 from ..utils.utils import is_local_obj
 from ..classes.operator import Mio3SKOperator
@@ -20,8 +21,8 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
 
     cancel_mirror_merge: BoolProperty(
         default=False,
-        name="ミラーモディファイアのマージをしない",
-        description="頂点数が変わる場合ミラーモディフィアのマージオプションはオフにしてください。",
+        name="Do not merge mirror modifier",
+        description="If vertex count changes, turn off mirror modifier merge option.",
     )
 
     apply_modifiers: CollectionProperty(type=OBJECT_PG_mio3sk_check_modifier)
@@ -62,10 +63,10 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
             if any(mod.name in selected_modifiers for mod in obj.modifiers):
                 if not self.modifier_apply(context, obj, selected_modifiers):
                     error = True
-                    self.report({"WARNING"}, "[Object:{}] 一部のシェイプキーが統合できませんでした。Ctrl+Zで元に戻せます。選択キー→「エラー要因のキーを選択」でエラーになるキーを確認できます。".format(obj.name))
+                    self.report({"WARNING"}, pgettext_rpt("[Object:{}] Some shape keys could not be merged. Ctrl+Z to undo. Use 'Select error keys' to find problematic keys.").format(obj.name))
 
         if not error:
-            self.report({"INFO"}, "モディフィアを適用しました")
+            self.report({"INFO"}, pgettext_rpt("Applied modifier"))
 
         print("Time: {:.5f}".format(time.time() - start_time))
         return {"FINISHED"}
@@ -190,7 +191,7 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
     def draw(self, context):
         layout = self.layout
         col = layout.column()
-        col.label(text="適用するモディファイアを選択してください")
+        col.label(text="Select modifiers to apply")
         for item in self.apply_modifiers:
             col.prop(item, "selected", text=item.name)
 

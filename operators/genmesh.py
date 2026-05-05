@@ -6,8 +6,8 @@ from ..utils.utils import is_local_obj, valid_shape_key
 
 class OBJECT_OT_mio3sk_generate_mesh(Mio3SKOperator):
     bl_idname = "object.mio3sk_generate_mesh"
-    bl_label = "選択したキーをオブジェクト化"
-    bl_description = "選択したキーの形状で別オブジェクトを作成する"
+    bl_label = "Objectify selected keys"
+    bl_description = "Create separate object from selected key's shape"
     bl_options = {"REGISTER", "UNDO"}
 
     skip_group: BoolProperty(name="Skip Group", default=True)

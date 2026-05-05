@@ -3,6 +3,7 @@ import numpy as np
 from mathutils import Vector, kdtree
 from bpy.props import BoolProperty, IntProperty, EnumProperty
 from bpy.app.translations import pgettext_iface as tt_iface
+from bpy.app.translations import pgettext_rpt
 from ..classes.operator import Mio3SKOperator
 from ..utils.utils import is_local_obj, valid_shape_key
 from ..utils.ext_data import refresh_data
@@ -184,8 +185,8 @@ class OBJECT_OT_mio3sk_composer_rule_remove_all(Mio3SKComposerEditOperator):
 
 class OBJECT_OT_mio3sk_composer_preview(Mio3SKComposerEditOperator):
     bl_idname = "object.mio3sk_composer_preview"
-    bl_label = "値をプレビュー"
-    bl_description = "同期ルールの値をプレビュー（マスクやミラーは反映されません）"
+    bl_label = "Preview value"
+    bl_description = "Preview sync rule value (mask and mirror not applied)"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
 
     def execute(self, context):
@@ -207,8 +208,8 @@ class OBJECT_OT_mio3sk_composer_preview(Mio3SKComposerEditOperator):
 
 class OBJECT_OT_mio3sk_composer_apply(Mio3SKComposerEditOperator):
     bl_idname = "object.mio3sk_composer_apply"
-    bl_label = "シェイプ同期"
-    bl_description = "シェイプの同期を適用"
+    bl_label = "Shape Sync"
+    bl_description = "Apply shape sync"
     bl_options = {"REGISTER", "UNDO"}
 
     dependence: BoolProperty(name="Active Link", default=False, options={"SKIP_SAVE"})
@@ -222,10 +223,10 @@ class OBJECT_OT_mio3sk_composer_apply(Mio3SKComposerEditOperator):
     @classmethod
     def description(cls, context, properties):
         if properties.all:
-            return "すべてのシェイプの同期を適用"
+            return tt_iface("Apply sync for all shapes")
         elif properties.dependence:
-            return "アクティブシェイプと親子のシェイプの同期を適用"
-        return "アクティブシェイプの同期を適用"
+            return tt_iface("Apply sync for active shape and parent/child shapes")
+        return tt_iface("Apply sync for active shape")
 
     def invoke(self, context, event):
         obj = context.active_object
@@ -337,7 +338,7 @@ class OBJECT_OT_mio3sk_composer_apply(Mio3SKComposerEditOperator):
             bpy.ops.object.mode_set(mode=object_mode)
 
         if self.all:
-            self.report({"INFO"}, "{}個のルールを適用しました".format(count))
+            self.report({"INFO"}, pgettext_rpt("Applied {} rules").format(count))
 
         self.print_time()
         return {"FINISHED"}
