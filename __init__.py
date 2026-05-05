@@ -15,6 +15,7 @@ from .operators import smooth_shape
 from .operators import symmetrize
 from .operators import clean
 from .operators import copy
+from .operators import morph_brush
 
 # Object
 from .operators import composer
@@ -62,6 +63,7 @@ modules = [
     symmetrize,
     clean,
     copy,
+    morph_brush,
     add,
     duplicate,
     join,

@@ -3,6 +3,7 @@ from ..classes.operator import Mio3SKSidePanel
 from ..utils.utils import is_obj, has_shape_key
 from ..icons import icons
 from ..globals import get_preferences
+from ..operators.morph_brush import MORPH_ATTR_NAME
 
 
 class MIO3SK_PT_side_main(Mio3SKSidePanel):
@@ -76,10 +77,46 @@ class MIO3SK_PT_sub_delta_repair(Mio3SKSidePanel):
         col.operator("mesh.mio3sk_repair")
 
 
+class MIO3SK_PT_sub_morph(Mio3SKSidePanel):
+    bl_label = "Morph Brush"
+    bl_parent_id = "MIO3SK_PT_side_main"
+    bl_options = {"DEFAULT_CLOSED"}
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.active_object
+        return obj is not None and obj.data.shape_keys is not None
+
+    def draw(self, context):
+        obj = context.active_object
+        prop_w = context.window_manager.mio3sk
+        shape_keys = obj.data.shape_keys
+
+        layout = self.layout
+        col = layout.column(align=True)
+
+        row = col.row(align=True)
+        row.prop_search(prop_w, "copy_source", shape_keys, "key_blocks", text="Target")
+        row.operator("mesh.mio3sk_copy", text="", icon="TRIA_LEFT")
+
+        col.separator()
+
+        attr_exists = obj.data.color_attributes.get(MORPH_ATTR_NAME) is not None
+        if attr_exists:
+            col.label(text="Weight attr: ready", icon="CHECKMARK")
+        else:
+            col.label(text="Weight attr: not set up", icon="ERROR")
+
+        col.separator()
+        col.operator("object.mio3sk_morph_setup", text="Setup Morph Weights", icon="BRUSH_DATA")
+        col.operator("object.mio3sk_morph_apply", text="Apply Morph", icon="CHECKMARK")
+
+
 classes = [
     MIO3SK_PT_side_main,
     MIO3SK_PT_sub_blend,
     MIO3SK_PT_sub_delta_repair,
+    MIO3SK_PT_sub_morph,
 ]
 
 
