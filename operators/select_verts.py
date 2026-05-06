@@ -21,7 +21,7 @@ class MESH_OT_mio3sk_select_moved(Mio3SKOperator):
         precision=4,
     )
     invert: BoolProperty(name="Invert", default=False)
-    add: BoolProperty(name="Add to Selection", options={"HIDDEN"}, default=False)
+    add: BoolProperty(name="Add", default=False)
 
     @classmethod
     def poll(cls, context):
