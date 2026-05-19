@@ -376,8 +376,12 @@ class SCENE_PG_mio3sk(PropertyGroup):
     panel_factor: FloatProperty(name="Panel factor", default=0.63, options=set())
     groupbar_factor: FloatProperty(name="Group Sidebar Size", default=1.0, min=1, max=2.0, options=set())
 
-    blend: FloatProperty(name="Blend", default=1, soft_min=-1, soft_max=2, step=10, options=set())
-    blend_vertex_group: StringProperty(name="Vertex Group Mask", options=set())
+    blend: FloatProperty(name="Blend Strength", default=1, soft_min=-1, soft_max=2, step=10, options=set())
+    blend_vertex_group: StringProperty(
+        name="Vertex Group Mask",
+        description="Only influence selected Vertex Group",
+        options=set(),
+    )
 
     composer_auto: BoolProperty(name="Auto apply shape sync", default=False, options=set())
     composer_auto_skip: BoolProperty(name="Skip auto apply", default=False, options=set())
@@ -449,6 +453,11 @@ class WM_PG_mio3sk(PropertyGroup):
     )
     copy_source: StringProperty(name="Copy Source", options=set())
     blend_source_name: StringProperty(name="Blend Source", update=callback_blend_source_name, options=set())
+    blend_subtract_name: StringProperty(
+        name="Subtract Shape",
+        description="Blend this shape with inverse blend strength",
+        options=set(),
+    )
     tag_filter_type: EnumProperty(
         name="Tag Filter Type",
         items=[("OR", "OR", ""), ("AND", "AND", "")],

@@ -39,22 +39,35 @@ class MIO3SK_PT_sub_blend(Mio3SKSidePanel):
     def draw(self, context):
         prop_s = context.scene.mio3sk
         prop_w = context.window_manager.mio3sk
-        shape_keys = context.active_object.data.shape_keys
+        obj = context.active_object
+        shape_keys = obj.data.shape_keys
 
         layout = self.layout
-        row = layout.row(align=True)
-        row.prop_search(prop_w, "blend_source_name", shape_keys, "key_blocks", text="")
-        row.operator("wm.mio3sk_blend_set_key", icon="TRIA_LEFT", text="")
 
-        row = layout.row(align=True)
-        row.prop_search(prop_s, "blend_vertex_group", context.active_object, "vertex_groups", text="Mask")
-        row.operator("wm.mio3sk_blend_set_vertex_group", icon="TRIA_LEFT", text="")
+        row = layout.split(factor=0.25, align=True)
+        row.label(text=tt_iface("Source:"))
+        sub = row.row(align=True)
+        sub.prop_search(prop_w, "blend_source_name", shape_keys, "key_blocks", text="")
+        sub.operator("wm.mio3sk_blend_set_key", icon="TRIA_LEFT", text="")
+
+        row = layout.split(factor=0.25, align=True)
+        row.label(text=tt_iface("Subtract:"))
+        sub = row.row(align=True)
+        sub.prop_search(prop_w, "blend_subtract_name", shape_keys, "key_blocks", text="")
+        sub.operator("wm.mio3sk_blend_set_subtract_key", icon="TRIA_LEFT", text="")
+
+        row = layout.split(factor=0.25, align=True)
+        row.label(text=tt_iface("Mask:"))
+        sub = row.row(align=True)
+        sub.prop_search(prop_s, "blend_vertex_group", obj, "vertex_groups", text="")
+        sub.operator("wm.mio3sk_blend_set_vertex_group", icon="TRIA_LEFT", text="")
 
         col = layout.column(align=False)
         split = col.split(factor=0.5, align=True)
         split.prop(prop_s, "blend", text="")
         op = split.operator("mesh.mio3sk_blend", text="Blend")
         op.blend = prop_s.blend
+        op.blend_subtract = prop_w.blend_subtract_name
         op.blend_vertex_group = prop_s.blend_vertex_group
         split = col.split(factor=0.58)
         # row = split.row(align=True)

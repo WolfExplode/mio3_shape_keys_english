@@ -34,8 +34,31 @@ def vertex_group_weights_bmesh(bm, obj, group_name):
     num_verts = len(bm.verts)
     weights = np.zeros(num_verts, dtype=np.float32)
     for vert in bm.verts:
-        weights[vert.index] = deform[vert].get(group_index, 0.0)
+        weights[vert.index] = vert[deform].get(group_index, 0.0)
     return weights
+
+
+def apply_shape_blend(target_co, basis_co, source_co, subtract_co, blend, add_mode, mask=None):
+    if mask is None:
+        pos_w = blend
+        neg_w = -blend
+    else:
+        pos_w = mask
+        neg_w = -mask
+
+    result = np.asarray(target_co, dtype=np.float32)
+    if add_mode:
+        if source_co is not None:
+            result = result + (source_co - basis_co) * pos_w
+        if subtract_co is not None:
+            result = result + (subtract_co - basis_co) * neg_w
+        return result
+
+    if source_co is not None:
+        result = (1 - pos_w) * result + pos_w * source_co
+    if subtract_co is not None:
+        result = (1 - neg_w) * result + neg_w * subtract_co
+    return result
 
 
 def update_props(self, context):
@@ -52,7 +75,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
     bl_description = "Blend shape keys"
     bl_options = {"REGISTER", "UNDO"}
 
-    blend: FloatProperty(name="Blend", default=1, min=-2, max=2, step=10, update=update_props)
+    blend: FloatProperty(name="Blend Strength", default=1, min=-2, max=2, step=10, update=update_props)
     smooth: BoolProperty(name="Smooth", default=False)
     add: BoolProperty(name="Add", default=False)
     falloff: EnumProperty(
@@ -65,7 +88,16 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         ],
     )
     blend_source: StringProperty(name="Shape")
-    blend_vertex_group: StringProperty(name="Vertex Group Mask", default="")
+    blend_subtract: StringProperty(
+        name="Subtract Shape",
+        description="Blend this shape with inverse blend strength",
+        default="",
+    )
+    blend_vertex_group: StringProperty(
+        name="Vertex Group Mask",
+        description="Only influence selected Vertex Group",
+        default="",
+    )
     from_history: StringProperty(name="Select from history", options={"SKIP_SAVE"})
     select_history: CollectionProperty(
         type=OP_PG_mio3sk_blend,
@@ -96,6 +128,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
                 self.select_history.add().name = history.name
 
         self.blend_source = prop_w.blend_source_name
+        self.blend_subtract = prop_w.blend_subtract_name
         self.blend_vertex_group = context.scene.mio3sk.blend_vertex_group
         if event.alt:
             self.blend = -self.blend
@@ -111,10 +144,17 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         if not (blend_source := obj.data.shape_keys.key_blocks.get(blend_source_name)):
             return {"CANCELLED"}
 
+        blend_subtract = None
+        if self.blend_subtract:
+            blend_subtract = obj.data.shape_keys.key_blocks.get(self.blend_subtract)
+            if blend_subtract is None:
+                self.report({"WARNING"}, "Subtract shape key not found")
+                return {"CANCELLED"}
+
         if self.blend_vertex_group:
             if obj.mode == "OBJECT":
-                return self.execute_vertex_group_mask(context, obj, blend_source)
-            return self.execute_vertex_group_mask_edit(context, obj, blend_source)
+                return self.execute_vertex_group_mask(context, obj, blend_source, blend_subtract)
+            return self.execute_vertex_group_mask_edit(context, obj, blend_source, blend_subtract)
 
         if obj.mode == "OBJECT":
             basis_kb = obj.data.shape_keys.reference_key
@@ -133,10 +173,15 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
             source_co = source_buf.reshape((num_verts, 3))
             target_co = target_buf.reshape((num_verts, 3))
 
-            if self.add:
-                result = target_co + (source_co - basis_co) * self.blend
-            else:
-                result = (1 - self.blend) * target_co + self.blend * source_co
+            subtract_co = None
+            if blend_subtract is not None:
+                subtract_buf = np.empty(num_verts * 3, dtype=np.float32)
+                blend_subtract.data.foreach_get("co", subtract_buf)
+                subtract_co = subtract_buf.reshape((num_verts, 3))
+
+            result = apply_shape_blend(
+                target_co, basis_co, source_co, subtract_co, self.blend, self.add
+            )
 
             target_kb.data.foreach_set("co", result.reshape(num_verts * 3))
             obj.data.update()
@@ -146,6 +191,10 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         if not self.smooth:
             try:
                 bpy.ops.mesh.blend_from_shape(shape=blend_source_name, blend=self.blend, add=self.add)
+                if blend_subtract is not None:
+                    bpy.ops.mesh.blend_from_shape(
+                        shape=self.blend_subtract, blend=-self.blend, add=self.add
+                    )
             except:
                 pass
 
@@ -171,16 +220,17 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         source_co = np.array([blend_source.data[i].co for i in selected_verts_indices])
         target_co = np.array([v.co for v in selected_verts_list])
 
+        subtract_co = None
+        if blend_subtract is not None:
+            subtract_co = np.array([blend_subtract.data[i].co for i in selected_verts_indices])
+
         weights = self.calc_weights_shape(selected_verts_list, target_co)
         weights /= np.max(weights)
-        weights = weights * self.blend
+        mask = (weights * self.blend)[:, np.newaxis]
 
-        if self.add:
-            diff = source_co - basis_co
-            result = target_co + diff * weights[:, np.newaxis]
-        else:
-            weight_col = weights[:, np.newaxis]
-            result = (1 - weight_col) * target_co + weight_col * source_co
+        result = apply_shape_blend(
+            target_co, basis_co, source_co, subtract_co, self.blend, self.add, mask=mask
+        )
 
         for v, new_co in zip(selected_verts_list, result):
             v.co = new_co
@@ -191,7 +241,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         self.print_time()
         return {"FINISHED"}
 
-    def execute_vertex_group_mask(self, context, obj, blend_source):
+    def execute_vertex_group_mask(self, context, obj, blend_source, blend_subtract):
         basis_kb = obj.data.shape_keys.reference_key
         target_kb = obj.active_shape_key
         weights = vertex_group_weights(obj, self.blend_vertex_group)
@@ -212,18 +262,23 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         source_co = source_buf.reshape((num_verts, 3))
         target_co = target_buf.reshape((num_verts, 3))
 
+        subtract_co = None
+        if blend_subtract is not None:
+            subtract_buf = np.empty(num_verts * 3, dtype=np.float32)
+            blend_subtract.data.foreach_get("co", subtract_buf)
+            subtract_co = subtract_buf.reshape((num_verts, 3))
+
         mask = (weights * self.blend)[:, np.newaxis]
-        if self.add:
-            result = target_co + (source_co - basis_co) * mask
-        else:
-            result = (1 - mask) * target_co + mask * source_co
+        result = apply_shape_blend(
+            target_co, basis_co, source_co, subtract_co, self.blend, self.add, mask=mask
+        )
 
         target_kb.data.foreach_set("co", result.reshape(num_verts * 3))
         obj.data.update()
         self.print_time()
         return {"FINISHED"}
 
-    def execute_vertex_group_mask_edit(self, context, obj, blend_source):
+    def execute_vertex_group_mask_edit(self, context, obj, blend_source, blend_subtract):
         basis_kb = obj.data.shape_keys.reference_key
 
         bm = bmesh.from_edit_mesh(obj.data)
@@ -240,11 +295,14 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         source_co = np.array([blend_source.data[i].co for i in indices])
         target_co = np.array([bm.verts[i].co for i in indices])
 
+        subtract_co = None
+        if blend_subtract is not None:
+            subtract_co = np.array([blend_subtract.data[i].co for i in indices])
+
         mask = (weights * self.blend)[:, np.newaxis]
-        if self.add:
-            result = target_co + (source_co - basis_co) * mask
-        else:
-            result = (1 - mask) * target_co + mask * source_co
+        result = apply_shape_blend(
+            target_co, basis_co, source_co, subtract_co, self.blend, self.add, mask=mask
+        )
 
         for i, new_co in enumerate(result):
             bm.verts[i].co = new_co
@@ -320,6 +378,10 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         row.prop_search(self, "blend_source", obj.data.shape_keys, "key_blocks", text="")
 
         row = layout.split(factor=0.35)
+        row.label(text="Subtract")
+        row.prop_search(self, "blend_subtract", obj.data.shape_keys, "key_blocks", text="")
+
+        row = layout.split(factor=0.35)
         row.label(text="Select from history")
         row.prop_search(self, "from_history", self, "select_history", icon="TOPBAR", text="")
 
@@ -360,6 +422,20 @@ class WM_OT_blend_set_key(Mio3SKOperator):
         return {"FINISHED"}
 
 
+class WM_OT_blend_set_subtract_key(Mio3SKOperator):
+    bl_idname = "wm.mio3sk_blend_set_subtract_key"
+    bl_label = "Set subtract key"
+    bl_description = "Set current active key as subtract shape"
+    bl_options = {"REGISTER", "UNDO_GROUPED"}
+
+    def execute(self, context):
+        self.start_time()
+        obj = context.active_object
+        if obj.active_shape_key:
+            context.window_manager.mio3sk.blend_subtract_name = obj.active_shape_key.name
+        return {"FINISHED"}
+
+
 class WM_OT_blend_set_vertex_group(Mio3SKOperator):
     bl_idname = "wm.mio3sk_blend_set_vertex_group"
     bl_label = "Set active vertex group"
@@ -378,6 +454,7 @@ classes = [
     OP_PG_mio3sk_blend,
     MESH_OT_mio3sk_blend,
     WM_OT_blend_set_key,
+    WM_OT_blend_set_subtract_key,
     WM_OT_blend_set_vertex_group,
 ]
 

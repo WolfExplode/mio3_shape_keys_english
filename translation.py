@@ -124,11 +124,21 @@ translation_dict = {
         # blend.py
         ("Operator", "Blend shape keys"): "シェイプキーをブレンド",
         ("*", "Vertex Group Mask"): "頂点グループマスク",
+        ("*", "Only influence selected Vertex Group"): "選択した頂点グループのみに影響",
         ("*", "Mask"): "マスク",
         ("Operator", "Set active key"): "アクティブキーをセット",
         ("Operator", "Set current active key as blend source"): "現在のアクティブキーをブレンドソースに設定します",
         ("Operator", "Set active vertex group"): "アクティブ頂点グループをセット",
         ("Operator", "Set current active vertex group as blend mask"): "現在のアクティブ頂点グループをブレンドマスクに設定します",
+        ("Operator", "Set subtract key"): "減算キーをセット",
+        ("Operator", "Set current active key as subtract shape"): "現在のアクティブキーを減算シェイプに設定します",
+        ("*", "Subtract Shape"): "減算シェイプ",
+        ("*", "Blend this shape with inverse blend strength"): "逆のブレンド強度でこのシェイプをブレンド",
+        ("*", "Blend Strength"): "ブレンド強度",
+        ("*", "Source:"): "ソース:",
+        ("*", "Subtract:"): "減算:",
+        ("*", "Mask:"): "マスク:",
+        ("*", "Subtract"): "減算",
         ("*", "Select from history"): "履歴から選択",
 
         # clean.py
