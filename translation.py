@@ -96,7 +96,7 @@ translation_dict = {
         # Batch Rename
         ("*", "Regular expression syntax is incorrect"): "正規表現が正しくありません",
 
-        # ----- NEW: English source -> Japanese (from hardcoded JP) -----
+        # ----- English source -> Japanese (from hardcoded JP) -----
 
         # add.py
         ("Operator", "Add shape key to object.\n[+Alt] Add to all objects in sync collection"): "オブジェクトにシェイプキーを追加します。\n[+Alt]同期コレクションのオブジェクトすべてに追加",
@@ -123,8 +123,12 @@ translation_dict = {
 
         # blend.py
         ("Operator", "Blend shape keys"): "シェイプキーをブレンド",
+        ("*", "Vertex Group Mask"): "頂点グループマスク",
+        ("*", "Mask"): "マスク",
         ("Operator", "Set active key"): "アクティブキーをセット",
         ("Operator", "Set current active key as blend source"): "現在のアクティブキーをブレンドソースに設定します",
+        ("Operator", "Set active vertex group"): "アクティブ頂点グループをセット",
+        ("Operator", "Set current active vertex group as blend mask"): "現在のアクティブ頂点グループをブレンドマスクに設定します",
         ("*", "Select from history"): "履歴から選択",
 
         # clean.py

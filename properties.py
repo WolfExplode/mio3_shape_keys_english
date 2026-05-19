@@ -377,6 +377,7 @@ class SCENE_PG_mio3sk(PropertyGroup):
     groupbar_factor: FloatProperty(name="Group Sidebar Size", default=1.0, min=1, max=2.0, options=set())
 
     blend: FloatProperty(name="Blend", default=1, soft_min=-1, soft_max=2, step=10, options=set())
+    blend_vertex_group: StringProperty(name="Vertex Group Mask", options=set())
 
     composer_auto: BoolProperty(name="Auto apply shape sync", default=False, options=set())
     composer_auto_skip: BoolProperty(name="Skip auto apply", default=False, options=set())

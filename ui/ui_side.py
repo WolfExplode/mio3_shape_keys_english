@@ -46,10 +46,16 @@ class MIO3SK_PT_sub_blend(Mio3SKSidePanel):
         row.prop_search(prop_w, "blend_source_name", shape_keys, "key_blocks", text="")
         row.operator("wm.mio3sk_blend_set_key", icon="TRIA_LEFT", text="")
 
+        row = layout.row(align=True)
+        row.prop_search(prop_s, "blend_vertex_group", context.active_object, "vertex_groups", text="Mask")
+        row.operator("wm.mio3sk_blend_set_vertex_group", icon="TRIA_LEFT", text="")
+
         col = layout.column(align=False)
         split = col.split(factor=0.5, align=True)
         split.prop(prop_s, "blend", text="")
-        split.operator("mesh.mio3sk_blend", text="Blend")["blend"] = prop_s.blend
+        op = split.operator("mesh.mio3sk_blend", text="Blend")
+        op.blend = prop_s.blend
+        op.blend_vertex_group = prop_s.blend_vertex_group
         split = col.split(factor=0.58)
         # row = split.row(align=True)
         # row.operator("mesh.mio3sk_blend", text="0.05")["blend"] = 0.05
