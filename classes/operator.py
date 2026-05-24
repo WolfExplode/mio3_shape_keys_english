@@ -1,5 +1,6 @@
 import time
 from bpy.types import Operator, Panel
+from bpy.app.translations import pgettext_rpt
 from ..globals import DEBUG
 
 
@@ -51,10 +52,10 @@ class Mio3SKOperator(Operator, Mio3SKDebug):
     def invoke(self, context, event):
         obj = context.active_object
         if not is_local_obj(obj):
-            self.report({"WARNING"}, "Library cannot be edited")
+            self.report({"WARNING"}, pgettext_rpt("Library cannot be edited"))
             return {"CANCELLED"}
         if not has_shape_key(obj):
-            self.report({"WARNING"}, "Has not Shape Keys")
+            self.report({"WARNING"}, pgettext_rpt("Has not Shape Keys"))
             return {"CANCELLED"}
         return self.execute(context)
 

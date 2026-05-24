@@ -1,5 +1,6 @@
 import bpy
 from bpy.props import BoolProperty, EnumProperty
+from bpy.app.translations import pgettext_rpt
 from ..classes.operator import Mio3SKOperator
 from ..utils.utils import is_local_obj, has_shape_key, clear_shape_keys_selection
 from ..utils.ext_data import get_key_groups, get_group_ext, refresh_data
@@ -15,9 +16,9 @@ class OBJECT_OT_mio3sk_sort(Mio3SKOperator):
         name="Method",
         items=[
             ("ALL", "All", ""),
-            ("ACTIVE_GROUP", "アクティブグループのみソート", ""),
-            ("GROUP", "グループをソート", ""),
-            ("OBJECT", "他のオブジェクトの順に合わせる", ""),
+            ("ACTIVE_GROUP", "Sort active group only", ""),
+            ("GROUP", "Sort groups", ""),
+            ("OBJECT", "Match order to other object", ""),
         ],
         default="ALL",
     )
@@ -34,10 +35,10 @@ class OBJECT_OT_mio3sk_sort(Mio3SKOperator):
     def invoke(self, context, event):
         obj = context.active_object
         if not is_local_obj(obj):
-            self.report({"WARNING"}, "Library cannot be edited")
+            self.report({"WARNING"}, pgettext_rpt("Library cannot be edited"))
             return {"CANCELLED"}
         if not has_shape_key(obj):
-            self.report({"WARNING"}, "Has not Shape Keys")
+            self.report({"WARNING"}, pgettext_rpt("Has not Shape Keys"))
             return {"CANCELLED"}
         return context.window_manager.invoke_props_dialog(self)
 

@@ -57,7 +57,7 @@ class MESH_OT_mio3sk_reset(Mio3SKOperator):
                 active_kb.data.foreach_set("co", basis_co_flat)
                 obj.data.update()
             else:
-                self.report({"ERROR"}, "Active Shape Key is Locked")
+                self.report({"ERROR"}, pgettext_rpt("Active Shape Key is Locked"))
 
         self.print_time()
         return {"FINISHED"}

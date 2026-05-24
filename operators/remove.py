@@ -76,7 +76,7 @@ class OBJECT_OT_mio3sk_remove(Mio3SKOperator):
         if self.mode == "ACTIVE":
             active_kb = obj.active_shape_key
             if active_kb.lock_shape:
-                self.report({"ERROR"}, "Active Shape Key is Locked")
+                self.report({"ERROR"}, pgettext_rpt("Active Shape Key is Locked"))
                 return {"CANCELLED"}
             remove_value_driver(active_kb)
             obj.shape_key_remove(active_kb)

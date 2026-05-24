@@ -2,6 +2,7 @@ import bpy
 import bmesh
 import numpy as np
 from bpy.props import BoolProperty, FloatProperty, EnumProperty
+from bpy.app.translations import pgettext_rpt
 from ..classes.operator import Mio3SKOperator
 from ..utils.utils import is_local_obj, valid_shape_key
 
@@ -69,7 +70,7 @@ class MESH_OT_mio3sk_clean(Mio3SKOperator):
         bmesh.update_edit_mesh(obj.data)
 
         if cleaned_count > 0:
-            self.report({"INFO"}, "Cleaned {} vertices".format(cleaned_count))
+            self.report({"INFO"}, pgettext_rpt("Cleaned {} vertices").format(cleaned_count))
 
         self.print_time()
         return {"FINISHED"}

@@ -1,5 +1,6 @@
 import bpy
 from bpy.props import BoolProperty, FloatProperty
+from bpy.app.translations import pgettext_rpt
 from ..classes.operator import Mio3SKOperator
 from ..utils.utils import is_obj, is_local_obj, valid_shape_key
 
@@ -41,7 +42,7 @@ class MESH_OT_mio3sk_paste(Mio3SKOperator):
             return {"CANCELLED"}
 
         if obj.data.total_vert_sel == 0:
-            self.report({"WARNING"}, "No vertices selected")
+            self.report({"WARNING"}, pgettext_rpt("No vertices selected"))
             return {"CANCELLED"}
 
         prop_w = context.window_manager.mio3sk

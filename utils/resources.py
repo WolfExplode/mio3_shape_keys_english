@@ -6,8 +6,8 @@ shape_keys_items = {
         "file": "vrc_viseme.csv",
     },
     "MMD_LIGHT": {
-        "name": "MMD Light",
-        "ja": "MMD Light",
+        "name": "MMD Lite",
+        "ja": "MMD Lite",
         "desc": "",
         "file": "mmd_light.csv",
     },

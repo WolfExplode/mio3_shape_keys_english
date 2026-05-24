@@ -1,6 +1,7 @@
 import bpy
 import json
 from bpy.props import StringProperty, EnumProperty
+from bpy.app.translations import pgettext_iface as tt_iface
 from ..classes.operator import Mio3SKOperator, Mio3SKGlobalOperator
 from ..utils.ext_data import clear_filter, refresh_data
 from ..utils.utils import has_shape_key, valid_shape_key, is_sync_collection
@@ -211,9 +212,8 @@ class OBJECT_OT_mio3sk_keyframe(Mio3SKOperator):
     @classmethod
     def description(cls, context, properties):
         if properties.action == "ADD":
-            return "追加"
-        else:
-            return "削除"
+            return tt_iface("Add keyframe")
+        return tt_iface("Remove keyframe")
 
     def execute(self, context):
         obj = context.active_object
@@ -261,7 +261,7 @@ class OBJECT_OT_mio3sk_active_key(Mio3SKGlobalOperator):
 
 class OBJECT_OT_mio3sk_props_conv(Mio3SKGlobalOperator):
     bl_idname = "object.mio3sk_props_conv"
-    bl_label = "Ver2 → v3 拡張データコンバーター"
+    bl_label = "Ver2 to v3 Extended Data Converter"
     bl_description = "Conv"
     bl_options = {"REGISTER", "UNDO_GROUPED", "INTERNAL"}
 

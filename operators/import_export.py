@@ -29,7 +29,7 @@ class OBJECT_OT_mio3sk_import_composer_rules(Mio3SKOperator):
     def invoke(self, context, event):
         obj = context.active_object
         if not has_shape_key(obj):
-            self.report({"ERROR"}, "Has not Shape Keys")
+            self.report({"ERROR"}, pgettext_rpt("Has not Shape Keys"))
             return {"CANCELLED"}
         context.window_manager.fileselect_add(self)
         return {"RUNNING_MODAL"}
@@ -108,7 +108,7 @@ class OBJECT_OT_mio3sk_export_composer_rules(Mio3SKOperator, ExportHelper):
     def invoke(self, context, event):
         obj = context.active_object
         if not has_shape_key(obj):
-            self.report({"ERROR"}, "Has not Shape Keys")
+            self.report({"ERROR"}, pgettext_rpt("Has not Shape Keys"))
             return {"CANCELLED"}
         default_path = os.path.dirname(bpy.data.filepath) if bpy.data.filepath else ""
         self.filepath = os.path.join(default_path, "{}_key_rules.json".format(obj.name))
@@ -423,9 +423,9 @@ class OBJECT_OT_mio3sk_output_shape_keys(Mio3SKOperator):
         items=[
             ("TEXT", "Text", ""),
             ("CSV", "CSV", ""),
-            ("JSON", "Json (キーの名前一覧)", ""),
-            ("JSON_PAIR", "Json (ペア用雛形)", ""),
-            ("JSON_RENAME", "Json (旧・新リスト)", ""),
+            ("JSON", "Json (key name list)", ""),
+            ("JSON_PAIR", "Json (pair template)", ""),
+            ("JSON_RENAME", "Json (old/new list)", ""),
         ],
         default="JSON",
     )

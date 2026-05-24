@@ -1,5 +1,6 @@
 import bpy
 from bpy.props import BoolProperty, StringProperty, EnumProperty
+from bpy.app.translations import pgettext_iface as tt_iface
 from bpy.app.translations import pgettext_rpt
 from ..classes.operator import Mio3SKOperator, Mio3SKGlobalOperator
 from ..utils.utils import get_unique_name, srgb2lnr
@@ -66,11 +67,11 @@ class OBJECT_OT_mio3sk_tag_rename(Mio3SKGlobalOperator):
         prop_o = obj.mio3sk
         tag_list = prop_o.tag_list
         if not tag_list:
-            self.report({"WARNING"}, "No tags available")
+            self.report({"WARNING"}, pgettext_rpt("No tags available"))
             return {"CANCELLED"}
         index = tag_list.find(self.tag) if self.tag else prop_o.tag_active_index
         if index < 0 or index >= len(tag_list):
-            self.report({"WARNING"}, "Tag not found")
+            self.report({"WARNING"}, pgettext_rpt("Tag not found"))
             return {"CANCELLED"}
         tag_list[index].name = self.name
         refresh_tag_data(context, obj)
@@ -81,7 +82,7 @@ class OBJECT_OT_mio3sk_tag_rename(Mio3SKGlobalOperator):
 
 class OBJECT_OT_mio3sk_tag_list_remove(Mio3SKGlobalOperator):
     bl_idname = "object.mio3sk_tag_list_remove"
-    bl_label = "Remove group"
+    bl_label = "Remove tag"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
     tag: StringProperty(name="Tag")
 
@@ -210,9 +211,8 @@ class OBJECT_OT_mio3sk_clear_tag(Mio3SKGlobalOperator):
     @classmethod
     def description(cls, context, properties):
         if properties.all:
-            return "すべてのシェイプキーのタグをクリア"
-        else:
-            return "アクティブシェイプキーのタグをクリア"
+            return tt_iface("Clear tags on all shape keys")
+        return tt_iface("Clear tags on active shape key")
 
     def invoke(self, context, event):
         obj = context.active_object
@@ -243,7 +243,7 @@ class OBJECT_OT_mio3sk_clear_tag(Mio3SKGlobalOperator):
 class OBJECT_OT_mio3sk_select_tag(Mio3SKGlobalOperator):
     bl_idname = "object.mio3sk_select_tag"
     bl_label = "Switch Tags"
-    bl_description = "Shift 複数選択 / Ctrl 登録 / Alt 解除"
+    bl_description = "Shift: multi-select / Ctrl: assign / Alt: remove"
     bl_options = {"REGISTER", "UNDO"}
     tag: StringProperty(name="tag")
     expand: BoolProperty(name="Expand", options={"SKIP_SAVE"})

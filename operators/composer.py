@@ -24,7 +24,7 @@ class Mio3SKComposerEditOperator(Mio3SKOperator):
 
 class OBJECT_OT_mio3sk_composer_source_add(Mio3SKComposerEditOperator):
     bl_idname = "object.mio3sk_composer_source_add"
-    bl_label = "Create Profile"
+    bl_label = "Add Source"
     bl_description = "Create Rule"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
 
@@ -41,7 +41,7 @@ class OBJECT_OT_mio3sk_composer_source_add(Mio3SKComposerEditOperator):
 
 class OBJECT_OT_mio3sk_composer_source_remove(Mio3SKComposerEditOperator):
     bl_idname = "object.mio3sk_composer_source_remove"
-    bl_label = "Create Profile"
+    bl_label = "Remove Source"
     bl_description = "Create Rule"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
     index: IntProperty(name="Index")
@@ -61,7 +61,7 @@ class OBJECT_OT_mio3sk_composer_source_remove(Mio3SKComposerEditOperator):
 
 class OBJECT_OT_mio3sk_composer_rule_create(Mio3SKComposerEditOperator):
     bl_idname = "object.mio3sk_composer_create"
-    bl_label = "Create Profile"
+    bl_label = "Create Rule"
     bl_description = "Create Rule"
     bl_options = {"REGISTER", "UNDO", "INTERNAL"}
     auto: BoolProperty(name="Auto", default=False)

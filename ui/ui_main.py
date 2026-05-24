@@ -1,6 +1,7 @@
 import bpy
 from bpy.types import UIList, UI_UL_list
 from bpy.app.translations import pgettext
+from bpy.app.translations import pgettext_iface as tt_iface
 from ..icons import icons
 from ..classes.operator import Mio3SKPanel
 from ..utils.utils import is_obj, is_allow_type, has_shape_key
@@ -30,10 +31,12 @@ class MIO3SK_PT_main(Mio3SKPanel):
                 if has_shape_key(obj):
                     collection_keys.update(obj.data.shape_keys.key_blocks.keys())
             layout.label(
-                text="{} Keys / Global {} Keys".format(len(shape_keys.key_blocks) - 1, len(collection_keys) - 1)
+                text=tt_iface("{} Keys / Global {} Keys").format(
+                    len(shape_keys.key_blocks) - 1, len(collection_keys) - 1
+                )
             )
         else:
-            layout.label(text="{} Keys".format(len(shape_keys.key_blocks) - 1))
+            layout.label(text=tt_iface("{} Keys").format(len(shape_keys.key_blocks) - 1))
 
     def draw(self, context):
         # start_time = time.time()

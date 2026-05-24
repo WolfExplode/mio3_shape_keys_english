@@ -1,6 +1,7 @@
 import re
 import bpy
 from bpy.props import BoolProperty, IntProperty, StringProperty
+from bpy.app.translations import pgettext_rpt
 from ..utils.utils import has_shape_key, is_local_obj, valid_shape_key, is_sync_collection
 from ..classes.operator import Mio3SKOperator
 from ..utils.ext_data import rename_ext_data, refresh_data
@@ -66,7 +67,7 @@ class OBJECT_OT_mio3sk_replace(Mio3SKOperator):
             try:
                 re.compile(rename_search)
             except re.error:
-                self.report({"WARNING"}, "Regular expression syntax is incorrect")
+                self.report({"WARNING"}, pgettext_rpt("Regular expression syntax is incorrect"))
                 return {"CANCELLED"}
 
         if self.replace_sync_collections and is_sync_collection(obj):
@@ -84,7 +85,10 @@ class OBJECT_OT_mio3sk_replace(Mio3SKOperator):
                     rename_ext_data(context, ob, key.name, new_name)
                 else:
                     if key.name != new_name:
-                        self.report({"INFO"}, "Skip: '{}' in '{}' (conflict)".format(key.name, ob.name))
+                        self.report(
+                            {"INFO"},
+                            pgettext_rpt("Skip: '{}' in '{}' (conflict)").format(key.name, ob.name),
+                        )
             refresh_data(context, ob, check=True, group=True, filter=True)
             prop_w.operator_objects.add().obj = ob
         return {"FINISHED"}

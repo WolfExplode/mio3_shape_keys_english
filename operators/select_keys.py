@@ -22,7 +22,7 @@ class MIO3SKSelectKeysBase(Mio3SKOperator):
             return {"CANCELLED"}
 
         if not has_shape_key(obj):
-            self.report({"WARNING"}, "Has not Shape Keys")
+            self.report({"WARNING"}, pgettext_rpt("Has not Shape Keys"))
             return {"CANCELLED"}
 
         return self.execute(context)
@@ -103,11 +103,11 @@ class OBJECT_OT_mio3sk_select_all_by_verts(MIO3SKSelectKeysBase):
             return {"CANCELLED"}
 
         if not has_shape_key(obj):
-            self.report({"WARNING"}, "Has not Shape Keys")
+            self.report({"WARNING"}, pgettext_rpt("Has not Shape Keys"))
             return {"CANCELLED"}
 
         if not obj.data.total_vert_sel:
-            self.report({"WARNING"}, "頂点が選択されていません")
+            self.report({"WARNING"}, pgettext_rpt("No vertices selected"))
             return {"CANCELLED"}
 
         return self.execute(context)

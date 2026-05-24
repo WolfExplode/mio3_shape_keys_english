@@ -3,6 +3,7 @@ import bmesh
 import numpy as np
 from bpy.types import PropertyGroup
 from bpy.props import BoolProperty, FloatProperty, StringProperty, EnumProperty, CollectionProperty
+from bpy.app.translations import pgettext_rpt
 from ..classes.operator import Mio3SKOperator
 from ..utils.utils import is_local_obj, valid_shape_key
 from ..utils.mesh import find_x_mirror_verts
@@ -118,7 +119,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
             return {"CANCELLED"}
 
         if not valid_shape_key(obj):
-            self.report({"WARNING"}, "Has not Shape Keys")
+            self.report({"WARNING"}, pgettext_rpt("Has not Shape Keys"))
             return {"CANCELLED"}
 
         key_block_names = obj.data.shape_keys.key_blocks.keys()
@@ -148,7 +149,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         if self.blend_subtract:
             blend_subtract = obj.data.shape_keys.key_blocks.get(self.blend_subtract)
             if blend_subtract is None:
-                self.report({"WARNING"}, "Subtract shape key not found")
+                self.report({"WARNING"}, pgettext_rpt("Subtract shape key not found"))
                 return {"CANCELLED"}
 
         if self.blend_vertex_group:
@@ -211,7 +212,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
             selected_verts.update(find_x_mirror_verts(bm, selected_verts))
 
         if not selected_verts:
-            self.report({"WARNING"}, "No vertices selected")
+            self.report({"WARNING"}, pgettext_rpt("No vertices selected"))
             return {"CANCELLED"}
 
         selected_verts_list = sorted(selected_verts, key=lambda v: v.index)
@@ -246,7 +247,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         target_kb = obj.active_shape_key
         weights = vertex_group_weights(obj, self.blend_vertex_group)
         if weights is None:
-            self.report({"WARNING"}, "Vertex group not found")
+            self.report({"WARNING"}, pgettext_rpt("Vertex group not found"))
             return {"CANCELLED"}
 
         num_verts = len(obj.data.vertices)
@@ -286,7 +287,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
 
         weights = vertex_group_weights_bmesh(bm, obj, self.blend_vertex_group)
         if weights is None:
-            self.report({"WARNING"}, "Vertex group not found")
+            self.report({"WARNING"}, pgettext_rpt("Vertex group not found"))
             return {"CANCELLED"}
 
         num_verts = len(bm.verts)

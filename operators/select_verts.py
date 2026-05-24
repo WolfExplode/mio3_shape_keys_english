@@ -32,7 +32,7 @@ class MESH_OT_mio3sk_select_moved(Mio3SKOperator):
     def invoke(self, context, event):
         obj = context.active_object
         if not is_local_obj(obj) or not valid_shape_key(obj):
-            self.report({"WARNING"}, "Has not Shape Keys")
+            self.report({"WARNING"}, pgettext_rpt("Has not Shape Keys"))
             return {"CANCELLED"}
 
         basis_kb = obj.data.shape_keys.reference_key

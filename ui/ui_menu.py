@@ -149,8 +149,8 @@ class MIO3SK_MT_composer_menu(Menu):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator("object.mio3sk_composer_remove", text="Remove rule", icon="TRASH")
-        layout.operator("object.mio3sk_composer_remove_all", text="Remove all rules", icon="TRASH")
+        layout.operator("object.mio3sk_composer_remove", text="Remove Rule", icon="TRASH")
+        layout.operator("object.mio3sk_composer_remove_all", text="Remove All Rules", icon="TRASH")
 
 
 class MIO3SK_MT_io_import_menu(Menu):
