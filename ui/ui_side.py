@@ -57,10 +57,14 @@ class MIO3SK_PT_sub_blend(Mio3SKSidePanel):
         sub.operator("wm.mio3sk_blend_set_subtract_key", icon="TRIA_LEFT", text="")
 
         row = layout.split(factor=0.25, align=True)
-        row.label(text=tt_iface("Mask:"))
+        row.label(text=tt_iface("Vertex Group:"))
         sub = row.row(align=True)
         sub.prop_search(prop_s, "blend_vertex_group", obj, "vertex_groups", text="")
         sub.operator("wm.mio3sk_blend_set_vertex_group", icon="TRIA_LEFT", text="")
+
+        row = layout.split(factor=0.25, align=True)
+        row.label(text=tt_iface("Mask:"))
+        row.prop(prop_s, "blend_sculpt_mask", text="")
 
         col = layout.column(align=False)
         split = col.split(factor=0.5, align=True)
@@ -69,6 +73,7 @@ class MIO3SK_PT_sub_blend(Mio3SKSidePanel):
         op.blend = prop_s.blend
         op.blend_subtract = prop_w.blend_subtract_name
         op.blend_vertex_group = prop_s.blend_vertex_group
+        op.blend_sculpt_mask = prop_s.blend_sculpt_mask
         split = col.split(factor=0.58)
         # row = split.row(align=True)
         # row.operator("mesh.mio3sk_blend", text="0.05")["blend"] = 0.05

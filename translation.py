@@ -125,13 +125,15 @@ translation_dict = {
 
         # blend.py
         ("Operator", "Blend shape keys"): "シェイプキーをブレンド",
-        ("*", "Vertex Group Mask"): "頂点グループマスク",
-        ("*", "Only influence selected Vertex Group"): "選択した頂点グループのみに影響",
+        ("*", "Vertex Group"): "頂点グループ",
+        ("*", "Only influence selected vertex group"): "選択した頂点グループのみに影響",
+        ("*", "Use sculpt mask to control blend region"): "スカルプトマスクでブレンド範囲を制御",
         ("*", "Mask"): "マスク",
         ("Operator", "Set active key"): "アクティブキーをセット",
         ("Operator", "Set current active key as blend source"): "現在のアクティブキーをブレンドソースに設定します",
         ("Operator", "Set active vertex group"): "アクティブ頂点グループをセット",
-        ("Operator", "Set current active vertex group as blend mask"): "現在のアクティブ頂点グループをブレンドマスクに設定します",
+        ("Operator", "Set current active vertex group"): "現在のアクティブ頂点グループを設定します",
+        ("*", "Vertex Group:"): "頂点グループ:",
         ("Operator", "Set subtract key"): "減算キーをセット",
         ("Operator", "Set current active key as subtract shape"): "現在のアクティブキーを減算シェイプに設定します",
         ("*", "Subtract Shape"): "減算シェイプ",

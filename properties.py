@@ -378,8 +378,14 @@ class SCENE_PG_mio3sk(PropertyGroup):
 
     blend: FloatProperty(name="Blend Strength", default=1, soft_min=-1, soft_max=2, step=10, options=set())
     blend_vertex_group: StringProperty(
-        name="Vertex Group Mask",
-        description="Only influence selected Vertex Group",
+        name="Vertex Group",
+        description="Only influence selected vertex group",
+        options=set(),
+    )
+    blend_sculpt_mask: BoolProperty(
+        name="Mask",
+        description="Use sculpt mask to control blend region",
+        default=False,
         options=set(),
     )
 

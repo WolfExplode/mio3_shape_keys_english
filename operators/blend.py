@@ -39,6 +39,33 @@ def vertex_group_weights_bmesh(bm, obj, group_name):
     return weights
 
 
+def sculpt_mask_weights(obj):
+    mesh = obj.data
+    num_verts = len(mesh.vertices)
+    weights = np.ones(num_verts, dtype=np.float32)
+    mask_attr = mesh.vertex_paint_mask
+    if mask_attr is None:
+        return weights
+    mask_data = mask_attr.data if hasattr(mask_attr, "data") else mask_attr
+    if len(mask_data) != num_verts:
+        return weights
+    mask = np.empty(num_verts, dtype=np.float32)
+    mask_data.foreach_get("value", mask)
+    weights[:] = 1.0 - mask
+    return weights
+
+
+def sculpt_mask_weights_bmesh(bm):
+    num_verts = len(bm.verts)
+    weights = np.ones(num_verts, dtype=np.float32)
+    layer = bm.verts.layers.float.get(".sculpt_mask")
+    if layer is None:
+        return weights
+    for vert in bm.verts:
+        weights[vert.index] = 1.0 - vert[layer]
+    return weights
+
+
 def apply_shape_blend(target_co, basis_co, source_co, subtract_co, blend, add_mode, mask=None):
     if mask is None:
         pos_w = blend
@@ -95,9 +122,14 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         default="",
     )
     blend_vertex_group: StringProperty(
-        name="Vertex Group Mask",
-        description="Only influence selected Vertex Group",
+        name="Vertex Group",
+        description="Only influence selected vertex group",
         default="",
+    )
+    blend_sculpt_mask: BoolProperty(
+        name="Mask",
+        description="Use sculpt mask to control blend region",
+        default=False,
     )
     from_history: StringProperty(name="Select from history", options={"SKIP_SAVE"})
     select_history: CollectionProperty(
@@ -131,6 +163,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         self.blend_source = prop_w.blend_source_name
         self.blend_subtract = prop_w.blend_subtract_name
         self.blend_vertex_group = context.scene.mio3sk.blend_vertex_group
+        self.blend_sculpt_mask = context.scene.mio3sk.blend_sculpt_mask
         if event.alt:
             self.blend = -self.blend
         return self.execute(context)
@@ -152,10 +185,28 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
                 self.report({"WARNING"}, pgettext_rpt("Subtract shape key not found"))
                 return {"CANCELLED"}
 
-        if self.blend_vertex_group:
-            if obj.mode == "OBJECT":
-                return self.execute_vertex_group_mask(context, obj, blend_source, blend_subtract)
-            return self.execute_vertex_group_mask_edit(context, obj, blend_source, blend_subtract)
+        if self.blend_sculpt_mask or self.blend_vertex_group:
+            if self.blend_sculpt_mask:
+                if obj.mode == "EDIT":
+                    bm = bmesh.from_edit_mesh(obj.data)
+                    bm.verts.ensure_lookup_table()
+                    weights = sculpt_mask_weights_bmesh(bm)
+                else:
+                    weights = sculpt_mask_weights(obj)
+            else:
+                if obj.mode == "EDIT":
+                    bm = bmesh.from_edit_mesh(obj.data)
+                    bm.verts.ensure_lookup_table()
+                    weights = vertex_group_weights_bmesh(bm, obj, self.blend_vertex_group)
+                else:
+                    weights = vertex_group_weights(obj, self.blend_vertex_group)
+                if weights is None:
+                    self.report({"WARNING"}, pgettext_rpt("Vertex group not found"))
+                    return {"CANCELLED"}
+
+            if obj.mode == "EDIT":
+                return self.execute_blend_mask_edit(context, obj, blend_source, blend_subtract, weights)
+            return self.execute_blend_mask(context, obj, blend_source, blend_subtract, weights)
 
         if obj.mode == "OBJECT":
             basis_kb = obj.data.shape_keys.reference_key
@@ -242,14 +293,9 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         self.print_time()
         return {"FINISHED"}
 
-    def execute_vertex_group_mask(self, context, obj, blend_source, blend_subtract):
+    def execute_blend_mask(self, context, obj, blend_source, blend_subtract, weights):
         basis_kb = obj.data.shape_keys.reference_key
         target_kb = obj.active_shape_key
-        weights = vertex_group_weights(obj, self.blend_vertex_group)
-        if weights is None:
-            self.report({"WARNING"}, pgettext_rpt("Vertex group not found"))
-            return {"CANCELLED"}
-
         num_verts = len(obj.data.vertices)
         basis_buf = np.empty(num_verts * 3, dtype=np.float32)
         source_buf = np.empty(num_verts * 3, dtype=np.float32)
@@ -279,16 +325,11 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         self.print_time()
         return {"FINISHED"}
 
-    def execute_vertex_group_mask_edit(self, context, obj, blend_source, blend_subtract):
+    def execute_blend_mask_edit(self, context, obj, blend_source, blend_subtract, weights):
         basis_kb = obj.data.shape_keys.reference_key
 
         bm = bmesh.from_edit_mesh(obj.data)
         bm.verts.ensure_lookup_table()
-
-        weights = vertex_group_weights_bmesh(bm, obj, self.blend_vertex_group)
-        if weights is None:
-            self.report({"WARNING"}, pgettext_rpt("Vertex group not found"))
-            return {"CANCELLED"}
 
         num_verts = len(bm.verts)
         indices = np.arange(num_verts)
@@ -395,6 +436,9 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         subrow.prop_search(self, "blend_vertex_group", obj, "vertex_groups", text="")
         subrow.operator("wm.mio3sk_blend_set_vertex_group", icon="TRIA_LEFT", text="")
         row = layout.split(factor=0.35)
+        row.label(text="Mask")
+        row.prop(self, "blend_sculpt_mask", text="")
+        row = layout.split(factor=0.35)
         row.label(text="")
         row.prop(self, "add")
 
@@ -440,7 +484,7 @@ class WM_OT_blend_set_subtract_key(Mio3SKOperator):
 class WM_OT_blend_set_vertex_group(Mio3SKOperator):
     bl_idname = "wm.mio3sk_blend_set_vertex_group"
     bl_label = "Set active vertex group"
-    bl_description = "Set current active vertex group as blend mask"
+    bl_description = "Set current active vertex group"
     bl_options = {"REGISTER", "UNDO_GROUPED"}
 
     def execute(self, context):
