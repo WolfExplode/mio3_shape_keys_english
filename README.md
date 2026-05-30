@@ -15,6 +15,13 @@ This repository is an English-language fork of the upstream addon:
 
 It tracks upstream `master` and adds an English UI (`translation_dict` with `ja_JP` locale), performance and workflow improvements, and extra operators listed in the changelog below. For the original Japanese README and official releases, see the upstream repo.
 
+## Compatibility
+
+- Blender 4.2 or later
+- Developed primarily against the latest stable Blender release. Older versions may cause errors.
+
+Note: Blender 5.0 is not recommended. Use Blender 4.x or Blender 5.1+. (API required for Blender 5 compatibility is only available from 5.1 onward, so 5.0 may have latent bugs.)
+
 ## Download
 
 https://addon.mio3io.com/

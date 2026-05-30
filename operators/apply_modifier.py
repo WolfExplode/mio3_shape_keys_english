@@ -4,7 +4,8 @@ import numpy as np
 from bpy.types import Context, Object, PropertyGroup
 from bpy.app.translations import pgettext_rpt
 from bpy.props import BoolProperty, CollectionProperty
-from ..utils.utils import is_local_obj
+from ..utils.utils import is_local_obj, has_shape_key
+# from ..utils.ext_data import update_sync_shape_keys_value
 from ..classes.operator import Mio3SKOperator
 
 # EXCLUDE_MODIFIERS = {"DECIMATE", "WELD", "EDGE_SPLIT", "REMESH"}
@@ -27,6 +28,7 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
 
     apply_modifiers: CollectionProperty(type=OBJECT_PG_mio3sk_check_modifier)
     # has_shape_keys: BoolProperty(options={"HIDDEN"}, default=False)
+    apply_sync_collection: BoolProperty(default=True, name="Collection Sync", description="統合されるオブジェクトのコレクション同期のシェイプキーを維持します")
 
     @classmethod
     def poll(cls, context):
@@ -98,17 +100,16 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
 
         # 使用していないキー
         v_len = len(obj.data.vertices)
-        basis_co_flat = np.empty(v_len * 3, dtype=np.float32)
-        basis_kb.data.foreach_get("co", basis_co_flat)
-        basis_co = basis_co_flat.reshape(-1, 3)
+        basis_co = np.empty(v_len * 3, dtype=np.float32)
+        basis_kb.data.foreach_get("co", basis_co)
         unused = set()
-        for kb in key_blocks[1:]:
-            shape_co_flat = np.empty(v_len * 3, dtype=np.float32)
-            kb.data.foreach_get("co", shape_co_flat)
-            shape_co = shape_co_flat.reshape(-1, 3)
-            if np.any(np.abs(basis_co - shape_co) > 0.00001):
-                continue
-            unused.add(kb.name)
+        if not self.apply_sync_collection:
+            for kb in key_blocks[1:]:
+                shape_co = np.empty(v_len * 3, dtype=np.float32)
+                kb.data.foreach_get("co", shape_co)
+                if np.any(np.abs(basis_co - shape_co) > 0.00001):
+                    continue
+                unused.add(kb.name)
 
         modifiers_to_keep = set(selected_modifiers)
 
@@ -123,6 +124,7 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
         copy_obj.name = "mio3sk_apply"
         copy_obj.data = obj.data.copy()
         context.collection.objects.link(copy_obj)
+        copy_key_blocks = copy_obj.data.shape_keys.key_blocks
 
         # 複製用オブジェクトの適用しないモディファイアを削除
         for mod in copy_obj.modifiers[:]:
@@ -135,15 +137,10 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
             if modifier_name in obj.modifiers:
                 bpy.ops.object.modifier_apply(modifier=modifier_name)
 
-        modifier_states = {}
-        for mod in obj.modifiers:
-            modifier_states[mod.name] = mod.show_viewport
-            mod.show_viewport = False
+        modifier_states = self.store_modifier_state(obj)
+        sync_objects = self.get_sync_objects(obj)
 
         obj.shape_key_add(name="Basis", from_mix=False)
-
-        copy_key_blocks = copy_obj.data.shape_keys.key_blocks
-
         obj.select_set(True)
 
         v_len = len(obj.data.vertices)
@@ -153,6 +150,8 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
                 new_shape_key = obj.shape_key_add(name=kb.name, from_mix=False)
             else:
                 kb.value = 1.0
+                self.sync_shape_key(sync_objects, kb, 1.0)
+
                 depsgraph = context.evaluated_depsgraph_get()
                 eval_obj = copy_obj.evaluated_get(depsgraph)
                 eval_mesh = eval_obj.to_mesh()
@@ -167,19 +166,19 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
                     new_shape_key.data.foreach_set("co", eval_co_flat)
                 eval_obj.to_mesh_clear()
                 kb.value = 0.0
+                self.sync_shape_key(sync_objects, kb, 0.0)
+
             new_shape_key.value = 0.0
 
         self.remove_object(copy_obj)
 
-        for mod in obj.modifiers:
-            if mod.name in modifier_states:
-                mod.show_viewport = modifier_states[mod.name]
+        self.restore_modifier_state(obj, modifier_states)
+
         obj.show_only_shape_key = show_only_shape_key
 
         return not error
 
-    @staticmethod
-    def remove_object(obj):
+    def remove_object(self, obj):
         mesh = obj.data
         bpy.data.objects.remove(obj, do_unlink=True)
         bpy.data.meshes.remove(mesh, do_unlink=True)
@@ -187,6 +186,36 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
     @staticmethod
     def valid_shape_key(obj):
         return obj.type == "MESH" and obj.data.shape_keys is not None and 0 <= obj.active_shape_key_index
+
+    def store_modifier_state(self, obj):
+        modifier_states = {}
+        for mod in obj.modifiers:
+            modifier_states[mod.name] = mod.show_viewport
+            mod.show_viewport = False
+        return modifier_states
+    
+    def restore_modifier_state(self, obj, modifier_states):
+        for mod in obj.modifiers:
+            if mod.name in modifier_states:
+                mod.show_viewport = modifier_states[mod.name]
+
+    def get_sync_objects(self, obj):
+        sync_objects = []
+        if self.apply_sync_collection:
+            prop_o = obj.mio3sk
+            if prop_o.syncs is not None:
+                for s_obj in prop_o.syncs.objects:
+                    if s_obj.data != obj.data and has_shape_key(s_obj):
+                        sync_objects.append(s_obj)
+        return sync_objects
+
+    def sync_shape_key(self, sync_objects, kb, value):
+        for s_obj in sync_objects:
+            s_key_blocks = s_obj.data.shape_keys.key_blocks
+            if kb.name in s_key_blocks:
+                s_key_blocks[kb.name].value = value
+            else:
+                s_key_blocks[0].value = 0.0
 
     def draw(self, context):
         layout = self.layout
@@ -200,6 +229,7 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
         col = layout.column()
         col.label(text="Options")
         col.prop(self, "cancel_mirror_merge")
+        col.prop(self, "apply_sync_collection")
 
             # box = layout.box()
             # col = box.column(align=True)
