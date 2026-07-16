@@ -24,6 +24,10 @@ translation_dict = {
         ("Operator", "Mute All"): "すべてミュート",
         ("Operator", "Unmute All"): "すべてミュート解除",
         ("Operator", "Unlock All"): "すべてロック解除",
+        ("Operator", "Mute Group"): "グループをミュート",
+        ("Operator", "Lock Group"): "グループをロック",
+        ("*", "Mute or unmute all shape keys in this group"): "グループ内のすべてのシェイプキーをミュート／解除",
+        ("*", "Lock or unlock all shape keys in this group"): "グループ内のすべてのシェイプキーをロック／解除",
 
         # Collection Sync
         ("*", "Collection Sync"): "コレクション同期",

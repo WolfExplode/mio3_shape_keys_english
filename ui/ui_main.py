@@ -453,10 +453,38 @@ class MIO3SK_UL_shape_keys(UIList):
         # Value
         if index == 0:
             sub.label(text="")
-        elif prop_s.hide_group_value and is_group:
+        elif is_group:
             sub.alignment = "RIGHT"
-            sub.label(text="{}".format(ext.group_len))
-            sub.separator(factor=0.25)
+            if prop_s.hide_group_value:
+                sub.label(text="{}".format(ext.group_len))
+                sub.separator(factor=0.25)
+            else:
+                if not key_block.id_data.use_relative:
+                    sub.prop(key_block, "frame", text="")
+                else:
+                    sub.prop(key_block, "value", text="")
+                    sub.separator(factor=0.25)
+
+            row.separator(factor=0.25)
+
+            if prop_s.show_mute:
+                op = row.operator(
+                    "object.mio3sk_group_mute",
+                    text="",
+                    icon="CHECKBOX_DEHLT" if key_block.mute else "CHECKBOX_HLT",
+                    emboss=False,
+                )
+                op.group = key_block.name
+                op.action = "UNMUTE" if key_block.mute else "MUTE"
+            if prop_s.show_lock:
+                op = row.operator(
+                    "object.mio3sk_group_lock",
+                    text="",
+                    icon="LOCKED" if key_block.lock_shape else "UNLOCKED",
+                    emboss=False,
+                )
+                op.group = key_block.name
+                op.action = "UNLOCK" if key_block.lock_shape else "LOCK"
         else:
             sub.alignment = "RIGHT"
             if not key_block.id_data.use_relative:

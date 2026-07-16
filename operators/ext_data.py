@@ -193,6 +193,81 @@ class OBJECT_OT_mio3sk_mute_all(Mio3SKOperator):
         return {"FINISHED"}
 
 
+def get_group_key_blocks(obj, group_name):
+    """グループヘッダーとそのメンバーのキーを取得"""
+    ext_data = obj.mio3sk.ext_data
+    members = []
+    in_group = False
+    for kb in obj.data.shape_keys.key_blocks:
+        if kb.name == group_name:
+            in_group = True
+            members.append(kb)
+        elif in_group:
+            ext = ext_data.get(kb.name)
+            if ext and ext.is_group:
+                break
+            members.append(kb)
+    return members
+
+
+class OBJECT_OT_mio3sk_group_mute(Mio3SKOperator):
+    bl_idname = "object.mio3sk_group_mute"
+    bl_label = "Mute Group"
+    bl_description = "Mute or unmute all shape keys in this group"
+    bl_options = {"REGISTER", "UNDO", "INTERNAL"}
+    group: StringProperty(name="Group", options={"SKIP_SAVE"})
+    action: EnumProperty(items=[("MUTE", "Mute", ""), ("UNMUTE", "Unmute", "")], options={"SKIP_SAVE"})
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.active_object
+        return obj is not None and has_shape_key(obj)
+
+    def execute(self, context):
+        obj = context.active_object
+        prop_o = obj.mio3sk
+
+        value = self.action == "MUTE"
+        members = get_group_key_blocks(obj, self.group)
+        for kb in members:
+            kb.mute = value
+
+        if is_sync_collection(obj):
+            source_mutes = {kb.name: kb.mute for kb in members}
+            for s_obj in prop_o.syncs.objects:
+                if s_obj.data == obj.data or not has_shape_key(s_obj):
+                    continue
+                sync_key_blocks = s_obj.data.shape_keys.key_blocks
+                for name, mute in source_mutes.items():
+                    if name in sync_key_blocks:
+                        target_key = sync_key_blocks[name]
+                        if target_key.mute != mute:
+                            target_key.mute = mute
+
+        return {"FINISHED"}
+
+
+class OBJECT_OT_mio3sk_group_lock(Mio3SKOperator):
+    bl_idname = "object.mio3sk_group_lock"
+    bl_label = "Lock Group"
+    bl_description = "Lock or unlock all shape keys in this group"
+    bl_options = {"REGISTER", "UNDO", "INTERNAL"}
+    group: StringProperty(name="Group", options={"SKIP_SAVE"})
+    action: EnumProperty(items=[("LOCK", "Lock", ""), ("UNLOCK", "Unlock", "")], options={"SKIP_SAVE"})
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.active_object
+        return obj is not None and has_shape_key(obj)
+
+    def execute(self, context):
+        obj = context.active_object
+        value = self.action == "LOCK"
+        for kb in get_group_key_blocks(obj, self.group):
+            kb.lock_shape = value
+        return {"FINISHED"}
+
+
 class OBJECT_OT_mio3sk_keyframe(Mio3SKOperator):
     bl_idname = "object.mio3sk_keyframe"
     bl_label = "Keyframe All"
@@ -344,6 +419,8 @@ classes = [
     OBJECT_OT_mio3sk_clear_ext_data,
     OBJECT_OT_mio3sk_clear_filter,
     OBJECT_OT_mio3sk_mute_all,
+    OBJECT_OT_mio3sk_group_mute,
+    OBJECT_OT_mio3sk_group_lock,
     OBJECT_OT_mio3sk_keyframe,
     OBJECT_OT_mio3sk_active_key,
     OBJECT_OT_mio3sk_props_conv,
