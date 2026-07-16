@@ -227,11 +227,11 @@ class MIO3SK_PT_options_popover(Panel):
         if bpy.app.version >= (4, 1, 0):
             row = layout.row(align=True)
             row.operator("object.shape_key_lock", text="Lock All").action = "LOCK"
-            row.operator("object.shape_key_lock", text="Unlock").action = "UNLOCK"
+            row.operator("object.shape_key_lock", text="Unlock All").action = "UNLOCK"
 
         row = layout.row(align=True)
         row.operator("object.mio3sk_mute_all", text="Mute All").action = "MUTE"
-        row.operator("object.mio3sk_mute_all", text="Unmute").action = "UNMUTE"
+        row.operator("object.mio3sk_mute_all", text="Unmute All").action = "UNMUTE"
 
         if obj.active_shape_key:
             layout.prop(obj.data.shape_keys, "use_relative")

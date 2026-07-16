@@ -22,8 +22,8 @@ translation_dict = {
         ("*", "Create New"): "新規作成",
 
         ("Operator", "Mute All"): "すべてミュート",
-        ("Operator", "Unmute"): "ミュート解除",
-        ("Operator", "Unlock"): "ロック解除",
+        ("Operator", "Unmute All"): "すべてミュート解除",
+        ("Operator", "Unlock All"): "すべてロック解除",
 
         # Collection Sync
         ("*", "Collection Sync"): "コレクション同期",
@@ -127,7 +127,7 @@ translation_dict = {
         ("Operator", "Blend shape keys"): "シェイプキーをブレンド",
         ("*", "Vertex Group"): "頂点グループ",
         ("*", "Only influence selected vertex group"): "選択した頂点グループのみに影響",
-        ("*", "Use sculpt mask to control blend region"): "スカルプトマスクでブレンド範囲を制御",
+        ("*", "Use sculpt mask for blend region"): "スカルプトマスクをブレンド範囲に使用",
         ("*", "Mask"): "マスク",
         ("Operator", "Set active key"): "アクティブキーをセット",
         ("Operator", "Set current active key as blend source"): "現在のアクティブキーをブレンドソースに設定します",

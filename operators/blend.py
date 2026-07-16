@@ -51,7 +51,7 @@ def sculpt_mask_weights(obj):
         return weights
     mask = np.empty(num_verts, dtype=np.float32)
     mask_data.foreach_get("value", mask)
-    weights[:] = 1.0 - mask
+    weights[:] = mask
     return weights
 
 
@@ -62,7 +62,7 @@ def sculpt_mask_weights_bmesh(bm):
     if layer is None:
         return weights
     for vert in bm.verts:
-        weights[vert.index] = 1.0 - vert[layer]
+        weights[vert.index] = vert[layer]
     return weights
 
 
@@ -89,10 +89,6 @@ def apply_shape_blend(target_co, basis_co, source_co, subtract_co, blend, add_mo
     return result
 
 
-def update_props(self, context):
-    context.scene.mio3sk.blend = self.blend
-
-
 class OP_PG_mio3sk_blend(PropertyGroup):
     pass
 
@@ -103,7 +99,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
     bl_description = "Blend shape keys"
     bl_options = {"REGISTER", "UNDO"}
 
-    blend: FloatProperty(name="Blend Strength", default=1, min=-2, max=2, step=10, update=update_props)
+    blend: FloatProperty(name="Blend Strength", default=1, min=-2, max=2, step=10)
     smooth: BoolProperty(name="Smooth", default=False)
     add: BoolProperty(name="Add", default=False)
     falloff: EnumProperty(
@@ -128,7 +124,7 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
     )
     blend_sculpt_mask: BoolProperty(
         name="Mask",
-        description="Use sculpt mask to control blend region",
+        description="Use sculpt mask for blend region",
         default=False,
     )
     from_history: StringProperty(name="Select from history", options={"SKIP_SAVE"})
@@ -169,6 +165,12 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
         return self.execute(context)
 
     def execute(self, context):
+        result = self._execute(context)
+        if "FINISHED" in result:
+            context.scene.mio3sk.blend = self.blend
+        return result
+
+    def _execute(self, context):
         self.start_time()
         obj = context.active_object
         if not obj.active_shape_key:

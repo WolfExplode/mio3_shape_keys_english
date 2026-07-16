@@ -384,7 +384,7 @@ class SCENE_PG_mio3sk(PropertyGroup):
     )
     blend_sculpt_mask: BoolProperty(
         name="Mask",
-        description="Use sculpt mask to control blend region",
+        description="Use sculpt mask for blend region",
         default=False,
         options=set(),
     )
