@@ -29,6 +29,11 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
     apply_modifiers: CollectionProperty(type=OBJECT_PG_mio3sk_check_modifier)
     # has_shape_keys: BoolProperty(options={"HIDDEN"}, default=False)
     apply_sync_collection: BoolProperty(default=True, name="Collection Sync", description="統合されるオブジェクトのコレクション同期のシェイプキーを維持します")
+    use_muted_keys: BoolProperty(
+        default=True,
+        name="Use Muted Shape Keys",
+        description="Temporarily unmute muted shape keys so their shapes are preserved. When disabled, muted keys become empty",
+    )
 
     @classmethod
     def poll(cls, context):
@@ -93,8 +98,22 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
 
         key_blocks = obj.data.shape_keys.key_blocks
         basis_kb = obj.data.shape_keys.reference_key
+        basis_name = basis_kb.name
         show_only_shape_key = obj.show_only_shape_key
         obj.show_only_shape_key = False
+
+        # 元のキー状態を保存（復元用）
+        key_states = {}
+        for kb in key_blocks:
+            key_states[kb.name] = {
+                "value": kb.value,
+                "mute": kb.mute,
+                "slider_min": kb.slider_min,
+                "slider_max": kb.slider_max,
+                "vertex_group": kb.vertex_group,
+                "interpolation": kb.interpolation,
+                "relative_key": kb.relative_key.name if kb.relative_key else None,
+            }
 
         key_blocks.foreach_set("value", [0.0] * len(key_blocks))
 
@@ -124,7 +143,19 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
         copy_obj.name = "mio3sk_apply"
         copy_obj.data = obj.data.copy()
         context.collection.objects.link(copy_obj)
-        copy_key_blocks = copy_obj.data.shape_keys.key_blocks
+        copy_shape_keys = copy_obj.data.shape_keys
+        copy_key_blocks = copy_shape_keys.key_blocks
+
+        # ドライバーが評価時に値を上書きしないようにミュート（元のミュート状態は復元用に保存）
+        driver_mutes = {}
+        if copy_shape_keys.animation_data:
+            for fc in copy_shape_keys.animation_data.drivers:
+                driver_mutes[(fc.data_path, fc.array_index)] = fc.mute
+                fc.mute = True
+
+        if self.use_muted_keys:
+            for kb in copy_key_blocks:
+                kb.mute = False
 
         # 複製用オブジェクトの適用しないモディファイアを削除
         for mod in copy_obj.modifiers[:]:
@@ -140,13 +171,27 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
         modifier_states = self.store_modifier_state(obj)
         sync_objects = self.get_sync_objects(obj)
 
-        obj.shape_key_add(name="Basis", from_mix=False)
+        # 同期オブジェクトのドライバーと値も退避
+        sync_driver_states = []
+        sync_value_states = []
+        for s_obj in sync_objects:
+            s_shape_keys = s_obj.data.shape_keys
+            if s_shape_keys.animation_data:
+                for fc in s_shape_keys.animation_data.drivers:
+                    sync_driver_states.append((fc, fc.mute))
+                    fc.mute = True
+            for s_kb in s_shape_keys.key_blocks:
+                sync_value_states.append((s_kb, s_kb.value))
+
+        obj.shape_key_add(name=basis_name, from_mix=False)
         obj.select_set(True)
 
         v_len = len(obj.data.vertices)
         error = False
         for kb in copy_key_blocks[1:]:
-            if kb.name in unused:
+            state = key_states.get(kb.name)
+            skip_muted = not self.use_muted_keys and state is not None and state["mute"]
+            if kb.name in unused or skip_muted:
                 new_shape_key = obj.shape_key_add(name=kb.name, from_mix=False)
             else:
                 kb.value = 1.0
@@ -168,7 +213,30 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
                 kb.value = 0.0
                 self.sync_shape_key(sync_objects, kb, 0.0)
 
-            new_shape_key.value = 0.0
+        # キーの状態（値・ミュート・スライダー範囲など）を復元
+        new_key_blocks = obj.data.shape_keys.key_blocks
+        for new_kb in new_key_blocks:
+            state = key_states.get(new_kb.name)
+            if state is None:
+                continue
+            new_kb.slider_min = state["slider_min"]
+            new_kb.slider_max = state["slider_max"]
+            new_kb.value = state["value"]
+            new_kb.mute = state["mute"]
+            new_kb.vertex_group = state["vertex_group"]
+            new_kb.interpolation = state["interpolation"]
+        for new_kb in new_key_blocks:
+            state = key_states.get(new_kb.name)
+            if state and state["relative_key"] and state["relative_key"] in new_key_blocks:
+                new_kb.relative_key = new_key_blocks[state["relative_key"]]
+
+        self.restore_drivers(obj, copy_shape_keys, driver_mutes)
+
+        # 同期オブジェクトのドライバーと値を復元
+        for fc, mute in sync_driver_states:
+            fc.mute = mute
+        for s_kb, value in sync_value_states:
+            s_kb.value = value
 
         self.remove_object(copy_obj)
 
@@ -177,6 +245,23 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
         obj.show_only_shape_key = show_only_shape_key
 
         return not error
+
+    def restore_drivers(self, obj, copy_shape_keys, driver_mutes):
+        """複製オブジェクトに退避されたシェイプキーのドライバーを新しいキーデータブロックに再作成する"""
+        if copy_shape_keys.animation_data is None:
+            return
+        new_shape_keys = obj.data.shape_keys
+        for fc in copy_shape_keys.animation_data.drivers:
+            if not fc.data_path.startswith("key_blocks["):
+                continue
+            if new_shape_keys.animation_data is None:
+                new_shape_keys.animation_data_create()
+            new_fc = new_shape_keys.animation_data.drivers.from_existing(src_driver=fc)
+            new_fc.mute = driver_mutes.get((fc.data_path, fc.array_index), False)
+            for var in new_fc.driver.variables:
+                for target in var.targets:
+                    if target.id == copy_shape_keys:
+                        target.id = new_shape_keys
 
     def remove_object(self, obj):
         mesh = obj.data
@@ -230,6 +315,7 @@ class OBJECT_OT_mio3sk_modifier_apply(Mio3SKOperator):
         col.label(text="Options")
         col.prop(self, "cancel_mirror_merge")
         col.prop(self, "apply_sync_collection")
+        col.prop(self, "use_muted_keys")
 
             # box = layout.box()
             # col = box.column(align=True)

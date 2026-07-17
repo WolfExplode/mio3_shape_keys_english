@@ -118,6 +118,8 @@ translation_dict = {
         ("*", "Prevent affecting keys like 'blink' that have expression protection set"): "表情の保護を設定している「まばたき」などのキーに影響を与えないようにします",
 
         # apply_modifier.py
+        ("*", "Use Muted Shape Keys"): "ミュート中のシェイプキーを使用",
+        ("*", "Temporarily unmute muted shape keys so their shapes are preserved. When disabled, muted keys become empty"): "ミュート中のシェイプキーを一時的に解除して形状を保持します。オフの場合、ミュート中のキーは空になります",
         ("*", "Do not merge mirror modifier"): "ミラーモディファイアのマージをしない",
         ("*", "If vertex count changes, turn off mirror modifier merge option."): "頂点数が変わる場合ミラーモディフィアのマージオプションはオフにしてください。",
         ("*", "[Object:{}] Some shape keys could not be merged. Ctrl+Z to undo. Use 'Select error keys' to find problematic keys."): "[Object:{}] 一部のシェイプキーが統合できませんでした。Ctrl+Zで元に戻せます。選択キー→「エラー要因のキーを選択」でエラーになるキーを確認できます。",
