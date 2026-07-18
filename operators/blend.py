@@ -100,7 +100,11 @@ class MESH_OT_mio3sk_blend(Mio3SKOperator):
     bl_options = {"REGISTER", "UNDO"}
 
     blend: FloatProperty(name="Blend Strength", default=1, min=-2, max=2, step=10)
-    smooth: BoolProperty(name="Smooth", default=False)
+    smooth: BoolProperty(
+        name="Smooth",
+        description="Taper the blend across selected vertices using the falloff curve, instead of applying it uniformly",
+        default=False,
+    )
     add: BoolProperty(name="Add", default=False)
     falloff: EnumProperty(
         name="Falloff",
